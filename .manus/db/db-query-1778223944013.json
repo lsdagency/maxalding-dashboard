@@ -1,0 +1,61 @@
+{
+  "query": "SELECT id, clientId, periodStart, periodEnd, cost, reach, thumbStopRate, holdRate, ctr, linkClicks, leads, costPerLead, leadRate, frequency, cpm FROM metrics_snapshots ORDER BY id DESC LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway05.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3AZWDz4QXLtsZHG.2f2fc49d185a --database LeM3M3PLxrqBHGDvpXJWrS --execute SELECT id, clientId, periodStart, periodEnd, cost, reach, thumbStopRate, holdRate, ctr, linkClicks, leads, costPerLead, leadRate, frequency, cpm FROM metrics_snapshots ORDER BY id DESC LIMIT 10;",
+  "rows": [
+    {
+      "id": "3",
+      "clientId": "1",
+      "periodStart": "2026-05-01",
+      "periodEnd": "2026-05-07",
+      "cost": "286.91",
+      "reach": "4888",
+      "thumbStopRate": "15.36",
+      "holdRate": "4.66",
+      "ctr": "0.02",
+      "linkClicks": "2",
+      "leads": "4",
+      "costPerLead": "71.73",
+      "leadRate": "200.00",
+      "frequency": "2.09",
+      "cpm": "28.05"
+    },
+    {
+      "id": "2",
+      "clientId": "1",
+      "periodStart": "2026-05-01",
+      "periodEnd": "2026-05-07",
+      "cost": "286.91",
+      "reach": "4888",
+      "thumbStopRate": "15.36",
+      "holdRate": "4.66",
+      "ctr": "0.02",
+      "linkClicks": "2",
+      "leads": "4",
+      "costPerLead": "71.73",
+      "leadRate": "200.00",
+      "frequency": "2.09",
+      "cpm": "28.05"
+    },
+    {
+      "id": "1",
+      "clientId": "1",
+      "periodStart": "2026-05-01",
+      "periodEnd": "2026-05-08",
+      "cost": "305.19",
+      "reach": "5083",
+      "thumbStopRate": "9.16",
+      "holdRate": "50.35",
+      "ctr": "0.03",
+      "linkClicks": "3",
+      "leads": "5",
+      "costPerLead": "61.04",
+      "leadRate": "166.67",
+      "frequency": "2.15",
+      "cpm": "27.87"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tclientId\tperiodStart\tperiodEnd\tcost\treach\tthumbStopRate\tholdRate\tctr\tlinkClicks\tleads\tcostPerLead\tleadRate\tfrequency\tcpm\n3\t1\t2026-05-01\t2026-05-07\t286.91\t4888\t15.36\t4.66\t0.02\t2\t4\t71.73\t200.00\t2.09\t28.05\n2\t1\t2026-05-01\t2026-05-07\t286.91\t4888\t15.36\t4.66\t0.02\t2\t4\t71.73\t200.00\t2.09\t28.05\n1\t1\t2026-05-01\t2026-05-08\t305.19\t5083\t9.16\t50.35\t0.03\t3\t5\t61.04\t166.67\t2.15\t27.87\n",
+  "stderr": "",
+  "execution_time_ms": 3374
+}

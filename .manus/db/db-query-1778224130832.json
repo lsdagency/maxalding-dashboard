@@ -1,0 +1,27 @@
+{
+  "query": "SELECT id, clientId, periodStart, periodEnd, cost, reach, thumbStopRate, holdRate, ctr, linkClicks, leads, costPerLead, leadRate, frequency, cpm FROM metrics_snapshots ORDER BY id DESC LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway05.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3AZWDz4QXLtsZHG.2f2fc49d185a --database LeM3M3PLxrqBHGDvpXJWrS --execute SELECT id, clientId, periodStart, periodEnd, cost, reach, thumbStopRate, holdRate, ctr, linkClicks, leads, costPerLead, leadRate, frequency, cpm FROM metrics_snapshots ORDER BY id DESC LIMIT 5;",
+  "rows": [
+    {
+      "id": "4",
+      "clientId": "1",
+      "periodStart": "2026-05-01",
+      "periodEnd": "2026-05-07",
+      "cost": "286.91",
+      "reach": "4888",
+      "thumbStopRate": "15.36",
+      "holdRate": "4.66",
+      "ctr": "1.13",
+      "linkClicks": "116",
+      "leads": "4",
+      "costPerLead": "71.73",
+      "leadRate": "3.45",
+      "frequency": "2.09",
+      "cpm": "28.05"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tclientId\tperiodStart\tperiodEnd\tcost\treach\tthumbStopRate\tholdRate\tctr\tlinkClicks\tleads\tcostPerLead\tleadRate\tfrequency\tcpm\n4\t1\t2026-05-01\t2026-05-07\t286.91\t4888\t15.36\t4.66\t1.13\t116\t4\t71.73\t3.45\t2.09\t28.05\n",
+  "stderr": "",
+  "execution_time_ms": 1851
+}

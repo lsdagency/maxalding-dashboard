@@ -1,0 +1,9 @@
+{
+  "query": "DELETE FROM metrics_snapshots;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway05.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3AZWDz4QXLtsZHG.2f2fc49d185a --database LeM3M3PLxrqBHGDvpXJWrS --execute DELETE FROM metrics_snapshots;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1778
+}

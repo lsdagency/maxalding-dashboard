@@ -1,0 +1,46 @@
+# Project TODO
+
+- [x] Database schema: clients table (name, meta_ad_account_id, email, notes)
+- [x] Database schema: metrics_snapshots table (client_id, date_range, all 11 metrics)
+- [x] Database schema: email_configs table (client_id, recipient_email, personalized_message, schedule)
+- [x] Database schema: email_logs table (client_id, sent_at, status, content)
+- [x] tRPC routers: client CRUD (add, edit, delete, list clients)
+- [x] tRPC routers: metrics fetch/store (pull from Meta API, store snapshots)
+- [x] tRPC routers: email config CRUD (configure recipient, personalization)
+- [x] tRPC routers: email send (manual trigger, preview)
+- [x] Meta Ads API integration: connect with access token, pull 7-day metrics per client
+- [x] Admin-only access: all routes protected behind admin role check
+- [x] Frontend: Dark theme with black/white Helvetica Neue branding
+- [x] Frontend: Dashboard layout with sidebar navigation
+- [x] Frontend: Dashboard overview page with all clients summary cards
+- [x] Frontend: Per-client detail page with metric cards (This Week vs Last Week, WoW%)
+- [x] Frontend: Client management page (add/edit/delete clients)
+- [x] Frontend: Email configuration page (select recipient, add personalization, preview)
+- [x] Frontend: Email history/logs page
+- [x] Automated weekly email: Friday 3pm scheduled task sending 7-day performance
+- [x] Email template: branded Max Alding email with metrics table and personalization
+- [x] Vitest tests for backend procedures
+- [ ] Configure scheduled task to fire every Friday at 3pm automatically
+- [x] Enforce admin-only access in frontend (redirect non-admins)
+- [x] Add Vitest coverage for client CRUD and email procedures
+- [x] Fix date range: "Last 7 days" excludes current day (e.g. today May 8 → shows May 1-7)
+- [x] Fix CTR calculation: Link Clicks ÷ Impressions × 100
+- [x] Fix Thumb Stop Rate calculation: 3-second video plays ÷ Impressions × 100
+- [x] Fix Hold Rate calculation: ThruPlays ÷ Impressions × 100
+- [x] Debug: Date range still showing 05-01 to 05-08 (should be 05-01 to 05-07)
+- [x] Debug: Thumb Stop Rate showing 9.16% but should be 15.05% (3sec video views / impressions)
+- [x] Debug: Hold Rate showing 50.35% but should be 4.61% (ThruPlays / impressions)
+- [x] Debug: CTR should be 1.11% (link click-through rate from Meta)
+- [x] Debug: Verify Lead Rate calculation (leads / link clicks)
+- [x] Auto-fetch last week data (previous 7 days) alongside this week on refresh
+- [x] Add KPI target fields to client setup (targets for each metric)
+- [x] Add KPI targets schema/DB migration (new columns or table)
+- [x] Display WoW comparison with last week data on dashboard and client detail
+- [x] Display KPI comparison on dashboard and client detail
+- [x] Integrate Resend for email delivery to external recipients
+- [x] Request RESEND_API_KEY secret from user
+- [x] Update emailService.ts to use Resend SDK
+- [x] Test email delivery end-to-end (user to verify)
+- [x] Add KPI targets column to the weekly email template
+- [x] Replace personalized message with AI-generated 2-3 sentence performance summary (natural, no AI language)
+- [x] Update email send flow to generate AI summary before sending
