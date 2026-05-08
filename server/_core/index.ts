@@ -32,6 +32,9 @@ async function startServer() {
   const server = createServer(app);
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
+  app.get("/health", (_req, res) => res.json({ status: "ok" }));
+
   registerOAuthRoutes(app);
 
   // Scheduled endpoint for automated weekly email reports
