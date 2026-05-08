@@ -406,7 +406,7 @@ export const appRouter = router({
       }),
 
     preview: adminProcedure
-      .input(z.object({ clientId: z.number() }))
+      .input(z.object({ clientId: z.number(), summaryOverride: z.string().optional() }))
       .mutation(async ({ input }) => {
         const client = await getClientById(input.clientId);
         if (!client) throw new TRPCError({ code: "NOT_FOUND", message: "Client not found" });
@@ -425,17 +425,19 @@ export const appRouter = router({
         const periodStart = String(snapshots[0].periodStart);
         const periodEnd = String(snapshots[0].periodEnd);
 
+        const useSummaryOverride = input.summaryOverride !== undefined;
         const [aiSummary, kpiTargetsRow] = await Promise.all([
-          generatePerformanceSummary(client.name, metricsComparison, periodStart, periodEnd),
+          useSummaryOverride ? Promise.resolve("") : generatePerformanceSummary(client.name, metricsComparison, periodStart, periodEnd),
           getKpiTargetsForClient(input.clientId),
         ]);
 
+        const summary = useSummaryOverride ? (input.summaryOverride || null) : (aiSummary || null);
         const kpiTargets = kpiTargetsRow ? kpiTargetsRowToNumbers(kpiTargetsRow) : null;
 
         const html = generateWeeklyReportEmail(
           client.name,
           metricsComparison,
-          aiSummary || null,
+          summary,
           periodStart,
           periodEnd,
           kpiTargets
@@ -448,6 +450,7 @@ export const appRouter = router({
       .input(z.object({
         clientId: z.number(),
         recipientEmail: z.string().email(),
+        summaryOverride: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
         const client = await getClientById(input.clientId);
@@ -467,17 +470,19 @@ export const appRouter = router({
         const periodStart = String(snapshots[0].periodStart);
         const periodEnd = String(snapshots[0].periodEnd);
 
+        const useSummaryOverride = input.summaryOverride !== undefined;
         const [aiSummary, kpiTargetsRow] = await Promise.all([
-          generatePerformanceSummary(client.name, metricsComparison, periodStart, periodEnd),
+          useSummaryOverride ? Promise.resolve("") : generatePerformanceSummary(client.name, metricsComparison, periodStart, periodEnd),
           getKpiTargetsForClient(input.clientId),
         ]);
 
         const kpiTargets = kpiTargetsRow ? kpiTargetsRowToNumbers(kpiTargetsRow) : null;
+        const summary = useSummaryOverride ? (input.summaryOverride || null) : (aiSummary || null);
 
         const html = generateWeeklyReportEmail(
           client.name,
           metricsComparison,
-          aiSummary || null,
+          summary,
           periodStart,
           periodEnd,
           kpiTargets
@@ -485,7 +490,6 @@ export const appRouter = router({
 
         const subject = `${client.name} — Weekly Performance Report | ${snapshots[0].periodStart} to ${snapshots[0].periodEnd}`;
 
-        // Create log entry
         const logId = await createEmailLog({
           clientId: input.clientId,
           recipientEmail: input.recipientEmail,

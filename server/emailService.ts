@@ -121,9 +121,16 @@ export function generateWeeklyReportEmail(
     const targetVal = kpiTargets?.[key] ?? null;
     const format = METRIC_FORMATS[key];
 
-    const targetCell = targetVal !== null && targetVal !== undefined
+    const hasTarget = targetVal !== null && targetVal !== undefined;
+    const vsKpi = hasTarget && thisWeekVal !== null && targetVal !== 0
+      ? ((thisWeekVal - targetVal!) / Math.abs(targetVal!)) * 100
+      : null;
+
+    const targetCell = hasTarget
       ? `<td style="padding: 12px 16px; text-align: center; color: #888;">${formatMetricValue(targetVal, format)}</td>`
       : `<td style="padding: 12px 16px; text-align: center; color: #444;">--</td>`;
+
+    const vsKpiCell = `<td style="padding: 12px 16px; text-align: center;">${formatWoWChange(vsKpi)}</td>`;
 
     return `
       <tr style="border-bottom: 1px solid #333;">
@@ -132,6 +139,7 @@ export function generateWeeklyReportEmail(
         <td style="padding: 12px 16px; text-align: center; color: #999;">${formatMetricValue(lastWeekVal, format)}</td>
         <td style="padding: 12px 16px; text-align: center;">${formatWoWChange(wowChange)}</td>
         ${targetCell}
+        ${vsKpiCell}
       </tr>
     `;
   }).join("");
@@ -175,6 +183,7 @@ export function generateWeeklyReportEmail(
           <th style="padding: 14px 16px; text-align: center; color: #888; font-size: 12px; font-weight: 600; letter-spacing: 1px;">LAST WEEK</th>
           <th style="padding: 14px 16px; text-align: center; color: #888; font-size: 12px; font-weight: 600; letter-spacing: 1px;">WoW</th>
           <th style="padding: 14px 16px; text-align: center; color: #888; font-size: 12px; font-weight: 600; letter-spacing: 1px;">TARGET</th>
+          <th style="padding: 14px 16px; text-align: center; color: #888; font-size: 12px; font-weight: 600; letter-spacing: 1px;">vs KPI</th>
         </tr>
       </thead>
       <tbody>

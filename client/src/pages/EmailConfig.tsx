@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { Plus, Edit, Trash2, Send, Eye, Mail } from "lucide-react";
 import { useState } from "react";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
 export default function EmailConfig() {
@@ -34,6 +35,15 @@ export default function EmailConfig() {
     recipientEmail: "",
     recipientName: "",
   });
+
+  // Per-config summary mode: 'ai' uses Claude, 'manual' uses the typed text
+  const [summaryModes, setSummaryModes] = useState<Record<number, 'ai' | 'manual'>>({});
+  const [summaryTexts, setSummaryTexts] = useState<Record<number, string>>({});
+
+  function getSummaryOverride(configId: number): string | undefined {
+    if (summaryModes[configId] === 'manual') return summaryTexts[configId] ?? "";
+    return undefined; // undefined = use AI
+  }
 
   const createMutation = trpc.emailConfig.create.useMutation({
     onSuccess: () => {
@@ -119,13 +129,14 @@ export default function EmailConfig() {
   }
 
   function handlePreview(config: any) {
-    previewMutation.mutate({ clientId: config.clientId });
+    previewMutation.mutate({ clientId: config.clientId, summaryOverride: getSummaryOverride(config.id) });
   }
 
   function handleSend(config: any) {
     sendMutation.mutate({
       clientId: config.clientId,
       recipientEmail: config.recipientEmail,
+      summaryOverride: getSummaryOverride(config.id),
     });
   }
 
@@ -260,15 +271,40 @@ export default function EmailConfig() {
             return (
               <Card key={config.id} className="bg-card border-border">
                 <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-2 flex-1 min-w-0">
                       <p className="text-sm font-semibold text-foreground">{clientName}</p>
                       <p className="text-xs text-muted-foreground">
                         To: {config.recipientName ? `${config.recipientName} <${config.recipientEmail}>` : config.recipientEmail}
                       </p>
-                      <p className="text-xs text-muted-foreground">AI-generated performance summary included</p>
+                      {/* Summary mode toggle */}
+                      <div className="flex items-center gap-2 pt-1">
+                        <span className="text-xs text-muted-foreground">Summary:</span>
+                        <div className="flex rounded-md overflow-hidden border border-border text-xs">
+                          <button
+                            className={`px-2.5 py-1 transition-colors ${(summaryModes[config.id] ?? 'ai') === 'ai' ? 'bg-white text-black font-medium' : 'text-muted-foreground hover:text-foreground'}`}
+                            onClick={() => setSummaryModes(p => ({ ...p, [config.id]: 'ai' }))}
+                          >
+                            AI
+                          </button>
+                          <button
+                            className={`px-2.5 py-1 transition-colors border-l border-border ${summaryModes[config.id] === 'manual' ? 'bg-white text-black font-medium' : 'text-muted-foreground hover:text-foreground'}`}
+                            onClick={() => setSummaryModes(p => ({ ...p, [config.id]: 'manual' }))}
+                          >
+                            Manual
+                          </button>
+                        </div>
+                      </div>
+                      {summaryModes[config.id] === 'manual' && (
+                        <Textarea
+                          value={summaryTexts[config.id] ?? ""}
+                          onChange={(e) => setSummaryTexts(p => ({ ...p, [config.id]: e.target.value }))}
+                          placeholder="Write a short performance summary to include in the email..."
+                          className="text-xs bg-background border-border text-foreground mt-1 resize-none h-20"
+                        />
+                      )}
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 flex-shrink-0">
                       <Button
                         variant="ghost"
                         size="icon"
