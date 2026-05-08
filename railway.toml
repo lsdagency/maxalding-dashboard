@@ -3,6 +3,6 @@ builder = "nixpacks"
 buildCommand = "pnpm install && pnpm build"
 
 [deploy]
-startCommand = "pnpm db:push && node dist/index.js"
+startCommand = "pnpm db:push; node dist/index.js"
 healthcheckPath = "/health"
 restartPolicyType = "on_failure"
