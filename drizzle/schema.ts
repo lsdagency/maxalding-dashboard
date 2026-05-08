@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, date, char } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, date, char, uniqueIndex } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -56,7 +56,9 @@ export const metricsSnapshots = mysqlTable("metrics_snapshots", {
   costPerLead: decimal("costPerLead", { precision: 10, scale: 2 }),
   leadRate: decimal("leadRate", { precision: 5, scale: 2 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
+}, (t) => ({
+  clientPeriodUnique: uniqueIndex("client_period_unique").on(t.clientId, t.periodStart, t.periodEnd),
+}));
 
 export type MetricsSnapshot = typeof metricsSnapshots.$inferSelect;
 export type InsertMetricsSnapshot = typeof metricsSnapshots.$inferInsert;

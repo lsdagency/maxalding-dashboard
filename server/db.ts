@@ -168,8 +168,13 @@ export async function getLatestMetricsForClient(clientId: number) {
 export async function createMetricsSnapshot(data: Omit<InsertMetricsSnapshot, "id" | "createdAt">) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const result = await db.insert(metricsSnapshots).values(data);
-  return result[0].insertId;
+  const { clientId, periodStart, periodEnd, ...metrics } = data;
+  await db.insert(metricsSnapshots).values(data).onDuplicateKeyUpdate({ set: metrics });
+  const existing = await db.select({ id: metricsSnapshots.id })
+    .from(metricsSnapshots)
+    .where(and(eq(metricsSnapshots.clientId, clientId), eq(metricsSnapshots.periodStart, periodStart), eq(metricsSnapshots.periodEnd, periodEnd)))
+    .limit(1);
+  return existing[0]?.id ?? 0;
 }
 
 // ==================== KPI TARGETS QUERIES ====================
