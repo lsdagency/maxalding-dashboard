@@ -1,4 +1,7 @@
 import "dotenv/config";
+// Node 18 doesn't expose Web Crypto as a global — jose v6 requires it
+import { webcrypto } from "crypto";
+if (!globalThis.crypto) (globalThis as any).crypto = webcrypto;
 import express from "express";
 import { createServer } from "http";
 import net from "net";
