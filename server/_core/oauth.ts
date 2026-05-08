@@ -23,19 +23,20 @@ export function registerOAuthRoutes(app: Express) {
     }
 
     try {
-      await db.upsertUser({
+      const token = await createSessionToken(email.trim().toLowerCase());
+      const cookieOptions = getSessionCookieOptions(req);
+      res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+      res.json({ success: true });
+
+      // Best-effort DB upsert — don't let it block or fail the login
+      db.upsertUser({
         openId: email.trim().toLowerCase(),
         name: "Admin",
         email: email.trim().toLowerCase(),
         loginMethod: "password",
         role: "admin",
         lastSignedIn: new Date(),
-      });
-
-      const token = await createSessionToken(email.trim().toLowerCase());
-      const cookieOptions = getSessionCookieOptions(req);
-      res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: ONE_YEAR_MS });
-      res.json({ success: true });
+      }).catch((err) => console.warn("[Auth] upsertUser failed (non-fatal):", err));
     } catch (error) {
       console.error("[Auth] Login failed", error);
       res.status(500).json({ error: "Login failed" });

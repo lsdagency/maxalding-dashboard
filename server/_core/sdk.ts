@@ -25,10 +25,15 @@ export async function authenticateRequest(req: Request) {
   const email = payload.email as string;
   if (!email) throw new Error("Invalid session");
 
-  const user = await db.getUserByEmail(email);
-  if (!user) throw new Error("User not found");
+  // Try DB first; fall back to synthetic admin user so auth works before tables exist
+  const dbUser = await db.getUserByEmail(email).catch(() => null);
+  if (dbUser) return dbUser;
 
-  return user;
+  if (email.toLowerCase() === ENV.adminEmail.trim().toLowerCase()) {
+    return { id: 1, email, name: "Admin", role: "admin", openId: email, loginMethod: "password" };
+  }
+
+  throw new Error("User not found");
 }
 
 export const sdk = { authenticateRequest, createSessionToken };
