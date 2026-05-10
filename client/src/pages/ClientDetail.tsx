@@ -101,17 +101,24 @@ export default function ClientDetail() {
     onError: (e) => toast.error(e.message),
   });
 
+  const [liveMetrics, setLiveMetrics] = useState<any>(null);
+  const [dateLabel, setDateLabel] = useState("Past 7 days");
+
   const fetchMutation = trpc.metrics.fetchFromMeta.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast.success("Metrics refreshed from Meta");
-      refetch();
+      setLiveMetrics(data);
     },
     onError: (e) => toast.error(e.message),
   });
 
   const handleDateRange = (range: DateRangeValue) => {
+    setDateLabel(range.label);
     fetchMutation.mutate({ clientId, dateStart: range.dateStart, dateEnd: range.dateEnd });
   };
+
+  // Use live data from mutation result if available, else fall back to DB query
+  const displayMetrics = liveMetrics ?? metrics;
 
   const handleSaveKpi = () => {
     const payload: any = { clientId };
@@ -165,10 +172,8 @@ export default function ClientDetail() {
           </Button>
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">{client.name}</h1>
-            {metrics && (
-              <p className="text-sm text-muted-foreground mt-0.5">
-                {metrics.periodStart} to {metrics.periodEnd}
-              </p>
+            {displayMetrics && (
+              <p className="text-sm text-muted-foreground mt-0.5">{dateLabel}</p>
             )}
           </div>
         </div>
@@ -221,19 +226,19 @@ export default function ClientDetail() {
       )}
 
       {/* Metric Cards - Key KPIs */}
-      {metrics && (
+      {displayMetrics && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {(["cost", "leads", "costPerLead", "ctr"] as const).map(key => (
             <Card key={key} className="bg-card border-border">
               <CardContent className="p-4">
                 <p className="text-xs text-muted-foreground uppercase tracking-wider">{METRIC_LABELS[key]}</p>
                 <p className="text-xl font-bold text-foreground mt-1">
-                  {formatValue(metrics.thisWeek[key] as number | null, METRIC_FORMATS[key])}
+                  {formatValue(displayMetrics.thisWeek[key] as number | null, METRIC_FORMATS[key])}
                 </p>
                 <div className="flex items-center gap-2 mt-1">
-                  <WoWBadge value={metrics.wowChange[key] as number | null} />
+                  <WoWBadge value={displayMetrics.wowChange[key] as number | null} />
                   <span className="text-xs text-muted-foreground">
-                    vs {formatValue(metrics.lastWeek[key] as number | null, METRIC_FORMATS[key])}
+                    vs {formatValue(displayMetrics.lastWeek[key] as number | null, METRIC_FORMATS[key])}
                   </span>
                 </div>
                 {kpiValues && kpiValues[key] !== null && (
@@ -251,7 +256,7 @@ export default function ClientDetail() {
       )}
 
       {/* Full Metrics Table */}
-      {metrics ? (
+      {displayMetrics ? (
         <Card className="bg-card border-border">
           <CardHeader>
             <CardTitle className="text-base font-semibold text-foreground">Full Performance Breakdown</CardTitle>
@@ -272,7 +277,7 @@ export default function ClientDetail() {
                 <tbody>
                   {METRIC_KEYS.map(key => {
                     const targetVal = kpiValues?.[key] ?? null;
-                    const actualVal = metrics.thisWeek[key] as number | null;
+                    const actualVal = displayMetrics.thisWeek[key] as number | null;
                     let vsTarget: number | null = null;
                     if (targetVal !== null && actualVal !== null && targetVal !== 0) {
                       vsTarget = ((actualVal - targetVal) / targetVal) * 100;
@@ -282,13 +287,13 @@ export default function ClientDetail() {
                       <tr key={key} className="border-b border-border/50 hover:bg-accent/30 transition-colors">
                         <td className="py-3 px-4 font-medium text-foreground">{METRIC_LABELS[key]}</td>
                         <td className="py-3 px-4 text-center text-foreground font-semibold">
-                          {formatValue(metrics.thisWeek[key] as number | null, METRIC_FORMATS[key])}
+                          {formatValue(displayMetrics.thisWeek[key] as number | null, METRIC_FORMATS[key])}
                         </td>
                         <td className="py-3 px-4 text-center text-muted-foreground">
-                          {formatValue(metrics.lastWeek[key] as number | null, METRIC_FORMATS[key])}
+                          {formatValue(displayMetrics.lastWeek[key] as number | null, METRIC_FORMATS[key])}
                         </td>
                         <td className="py-3 px-4 text-center">
-                          <WoWBadge value={metrics.wowChange[key] as number | null} />
+                          <WoWBadge value={displayMetrics.wowChange[key] as number | null} />
                         </td>
                         <td className="py-3 px-4 text-center text-blue-400">
                           {targetVal !== null ? formatValue(targetVal, METRIC_FORMATS[key]) : "—"}

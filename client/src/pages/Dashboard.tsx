@@ -48,20 +48,28 @@ function formatValue(value: number | null, format: string): string {
 export default function Dashboard() {
   const [, setLocation] = useLocation();
   const { data: clientsData, isLoading, refetch } = trpc.metrics.getAllClientsMetrics.useQuery();
+  // Live metrics override keyed by clientId — populated from mutation result, bypasses DB re-query
+  const [liveMetricsMap, setLiveMetricsMap] = useState<Record<number, any>>({});
+  const [activeDateLabel, setActiveDateLabel] = useState("Past 7 days");
+
   const fetchAllMutation = trpc.metrics.fetchAllFromMeta.useMutation({
     onSuccess: (results) => {
       const successCount = results.filter(r => r.success).length;
       toast.success(`Refreshed ${successCount}/${results.length} clients`);
-      refetch();
+      const newMap: Record<number, any> = {};
+      for (const r of results) {
+        if (r.success && "thisWeek" in r) {
+          newMap[r.clientId] = { thisWeek: r.thisWeek, lastWeek: r.lastWeek, wowChange: r.wowChange };
+        }
+      }
+      setLiveMetricsMap(newMap);
     },
     onError: (error) => {
       toast.error(error.message);
     },
   });
 
-  const [activeDateLabel, setActiveDateLabel] = useState("Past 7 days");
-
-  const handleDateRange = async (range: DateRangeValue) => {
+  const handleDateRange = (range: DateRangeValue) => {
     setActiveDateLabel(range.label);
     fetchAllMutation.mutate({ dateStart: range.dateStart, dateEnd: range.dateEnd });
   };
@@ -94,7 +102,10 @@ export default function Dashboard() {
     );
   }
 
-  const activeClients = clientsData || [];
+  const activeClients = (clientsData || []).map(c => ({
+    ...c,
+    metrics: liveMetricsMap[c.id] ?? c.metrics,
+  }));
 
   return (
     <div className="space-y-6">

@@ -228,7 +228,21 @@ export const appRouter = router({
           leadRate: lastWeekMetrics.leadRate?.toString() || null,
         });
 
-        return { success: true, metrics: thisWeekMetrics };
+        const wowChange: Record<keyof MetricsData, number | null> = {} as any;
+        for (const key of Object.keys(thisWeekMetrics) as Array<keyof MetricsData>) {
+          wowChange[key] = calculateWoWChange((thisWeekMetrics as any)[key], (lastWeekMetrics as any)[key]);
+        }
+
+        return {
+          success: true,
+          thisWeek: thisWeekMetrics,
+          lastWeek: lastWeekMetrics,
+          wowChange,
+          periodStart: thisWeekStart,
+          periodEnd: thisWeekEnd,
+          prevPeriodStart: lastWeekStart,
+          prevPeriodEnd: lastWeekEnd,
+        };
       }),
 
     fetchAllFromMeta: adminProcedure
@@ -295,7 +309,15 @@ export const appRouter = router({
             leadRate: lastWeekMetrics.leadRate?.toString() || null,
           });
 
-          results.push({ clientId: client.id, clientName: client.name, success: true });
+          const wowChange: Record<keyof MetricsData, number | null> = {} as any;
+          for (const key of Object.keys(thisWeekMetrics) as Array<keyof MetricsData>) {
+            wowChange[key] = calculateWoWChange((thisWeekMetrics as any)[key], (lastWeekMetrics as any)[key]);
+          }
+          results.push({
+            clientId: client.id, clientName: client.name, success: true,
+            thisWeek: thisWeekMetrics, lastWeek: lastWeekMetrics, wowChange,
+            periodStart: thisWeekStart, periodEnd: thisWeekEnd,
+          });
         } catch (error: any) {
           results.push({ clientId: client.id, clientName: client.name, success: false, error: error.message });
         }
