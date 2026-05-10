@@ -3,10 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, RefreshCw, TrendingUp, TrendingDown, Minus, Target, Save } from "lucide-react";
+import { ArrowLeft, TrendingUp, TrendingDown, Minus, Target, Save } from "lucide-react";
 import { useLocation, useParams } from "wouter";
 import { toast } from "sonner";
 import { useState, useEffect, useMemo } from "react";
+import { DateRangePicker, type DateRangeValue } from "@/components/DateRangePicker";
 
 const METRIC_KEYS = [
   "cost", "reach", "thumbStopRate", "holdRate", "frequency",
@@ -108,15 +109,8 @@ export default function ClientDetail() {
     onError: (e) => toast.error(e.message),
   });
 
-  const [refreshing, setRefreshing] = useState(false);
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    try {
-      await fetchMutation.mutateAsync({ clientId });
-    } finally {
-      setRefreshing(false);
-    }
+  const handleDateRange = (range: DateRangeValue) => {
+    fetchMutation.mutate({ clientId, dateStart: range.dateStart, dateEnd: range.dateEnd });
   };
 
   const handleSaveKpi = () => {
@@ -187,15 +181,7 @@ export default function ClientDetail() {
             <Target className="h-4 w-4 mr-2" />
             KPI Targets
           </Button>
-          <Button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            variant="outline"
-            className="border-border text-foreground hover:bg-accent"
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
-            Refresh from Meta
-          </Button>
+          <DateRangePicker onApply={handleDateRange} loading={fetchMutation.isPending} />
         </div>
       </div>
 

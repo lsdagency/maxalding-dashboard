@@ -230,16 +230,18 @@ export const appRouter = router({
         return { success: true, metrics: thisWeekMetrics };
       }),
 
-    fetchAllFromMeta: adminProcedure.mutation(async () => {
+    fetchAllFromMeta: adminProcedure
+      .input(z.object({ dateStart: z.string().optional(), dateEnd: z.string().optional() }).optional())
+      .mutation(async ({ input }) => {
       const activeClients = await getActiveClients();
       const accessToken = ENV.metaAccessToken;
       if (!accessToken) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Meta access token not configured" });
 
-      // This week: last 7 complete days (excluding today)
+      // This week: use provided dates or default to last 7 complete days (excluding today)
       const now = new Date();
       const yesterday = new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000);
-      const thisWeekEnd = formatDate(yesterday);
-      const thisWeekStart = formatDate(new Date(yesterday.getTime() - 6 * 24 * 60 * 60 * 1000));
+      const thisWeekEnd = input?.dateEnd || formatDate(yesterday);
+      const thisWeekStart = input?.dateStart || formatDate(new Date(yesterday.getTime() - 6 * 24 * 60 * 60 * 1000));
 
       // Last week: the 7 days prior to this week
       const lastWeekEndDate = new Date(new Date(thisWeekStart).getTime() - 1 * 24 * 60 * 60 * 1000);

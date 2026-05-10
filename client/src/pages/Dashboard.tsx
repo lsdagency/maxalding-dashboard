@@ -1,10 +1,10 @@
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { RefreshCw, TrendingUp, TrendingDown, Minus, Users } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Users } from "lucide-react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { useState } from "react";
+import { DateRangePicker, type DateRangeValue } from "@/components/DateRangePicker";
 
 const METRIC_LABELS: Record<string, string> = {
   cost: "Amount Spent",
@@ -59,15 +59,11 @@ export default function Dashboard() {
     },
   });
 
-  const [refreshing, setRefreshing] = useState(false);
+  const [activeDateLabel, setActiveDateLabel] = useState("Past 7 days");
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    try {
-      await fetchAllMutation.mutateAsync();
-    } finally {
-      setRefreshing(false);
-    }
+  const handleDateRange = async (range: DateRangeValue) => {
+    setActiveDateLabel(range.label);
+    fetchAllMutation.mutate({ dateStart: range.dateStart, dateEnd: range.dateEnd });
   };
 
   if (isLoading) {
@@ -107,18 +103,10 @@ export default function Dashboard() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Performance Dashboard</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Last 7 days (excl. today) — {activeClients.length} active client{activeClients.length !== 1 ? "s" : ""}
+            {activeDateLabel} — {activeClients.length} active client{activeClients.length !== 1 ? "s" : ""}
           </p>
         </div>
-        <Button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          variant="outline"
-          className="border-border text-foreground hover:bg-accent"
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
-          Refresh Data
-        </Button>
+        <DateRangePicker onApply={handleDateRange} loading={fetchAllMutation.isPending} />
       </div>
 
       {/* Summary Stats */}
