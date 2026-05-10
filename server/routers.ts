@@ -174,16 +174,17 @@ export const appRouter = router({
         const accessToken = ENV.metaAccessToken;
         if (!accessToken) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Meta access token not configured" });
 
-        // This week: last 7 complete days (excluding today)
+        // This period: use provided dates or default to last 7 complete days (excluding today)
         const now = new Date();
         const yesterday = new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000);
         const thisWeekEnd = input.dateEnd || formatDate(yesterday);
         const thisWeekStart = input.dateStart || formatDate(new Date(yesterday.getTime() - 6 * 24 * 60 * 60 * 1000));
 
-        // Last week: the 7 days prior to this week
+        // Previous period: same length, immediately before this period
+        const periodDays = Math.round((new Date(thisWeekEnd).getTime() - new Date(thisWeekStart).getTime()) / (24 * 60 * 60 * 1000));
         const lastWeekEndDate = new Date(new Date(thisWeekStart).getTime() - 1 * 24 * 60 * 60 * 1000);
         const lastWeekEnd = formatDate(lastWeekEndDate);
-        const lastWeekStart = formatDate(new Date(lastWeekEndDate.getTime() - 6 * 24 * 60 * 60 * 1000));
+        const lastWeekStart = formatDate(new Date(lastWeekEndDate.getTime() - periodDays * 24 * 60 * 60 * 1000));
 
         // Fetch this week
         const thisWeekMetrics = await fetchMetaAdsMetrics(client.metaAdAccountId, accessToken, thisWeekStart, thisWeekEnd);
@@ -237,16 +238,17 @@ export const appRouter = router({
       const accessToken = ENV.metaAccessToken;
       if (!accessToken) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Meta access token not configured" });
 
-      // This week: use provided dates or default to last 7 complete days (excluding today)
+      // This period: use provided dates or default to last 7 complete days (excluding today)
       const now = new Date();
       const yesterday = new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000);
       const thisWeekEnd = input?.dateEnd || formatDate(yesterday);
       const thisWeekStart = input?.dateStart || formatDate(new Date(yesterday.getTime() - 6 * 24 * 60 * 60 * 1000));
 
-      // Last week: the 7 days prior to this week
+      // Previous period: same length, immediately before this period
+      const periodDays = Math.round((new Date(thisWeekEnd).getTime() - new Date(thisWeekStart).getTime()) / (24 * 60 * 60 * 1000));
       const lastWeekEndDate = new Date(new Date(thisWeekStart).getTime() - 1 * 24 * 60 * 60 * 1000);
       const lastWeekEnd = formatDate(lastWeekEndDate);
-      const lastWeekStart = formatDate(new Date(lastWeekEndDate.getTime() - 6 * 24 * 60 * 60 * 1000));
+      const lastWeekStart = formatDate(new Date(lastWeekEndDate.getTime() - periodDays * 24 * 60 * 60 * 1000));
 
       const results = [];
       for (const client of activeClients) {

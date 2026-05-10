@@ -176,11 +176,6 @@ export default function Dashboard() {
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg font-semibold text-foreground">{client.name}</CardTitle>
-                  {client.metrics && (
-                    <span className="text-xs text-muted-foreground">
-                      {client.metrics.periodStart} — {client.metrics.periodEnd}
-                    </span>
-                  )}
                 </div>
               </CardHeader>
               <CardContent>

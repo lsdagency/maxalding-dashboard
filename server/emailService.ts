@@ -180,7 +180,7 @@ export function generateWeeklyReportEmail(
         <tr style="background: #1a1a1a;">
           <th style="padding: 14px 16px; text-align: left; color: #888; font-size: 12px; font-weight: 600; letter-spacing: 1px;">METRIC</th>
           <th style="padding: 14px 16px; text-align: center; color: #888; font-size: 12px; font-weight: 600; letter-spacing: 1px;">THIS WEEK</th>
-          <th style="padding: 14px 16px; text-align: center; color: #888; font-size: 12px; font-weight: 600; letter-spacing: 1px;">LAST WEEK</th>
+          <th style="padding: 14px 16px; text-align: center; color: #888; font-size: 12px; font-weight: 600; letter-spacing: 1px;">PREV PERIOD</th>
           <th style="padding: 14px 16px; text-align: center; color: #888; font-size: 12px; font-weight: 600; letter-spacing: 1px;">WoW</th>
           <th style="padding: 14px 16px; text-align: center; color: #888; font-size: 12px; font-weight: 600; letter-spacing: 1px;">TARGET</th>
           <th style="padding: 14px 16px; text-align: center; color: #888; font-size: 12px; font-weight: 600; letter-spacing: 1px;">vs KPI</th>

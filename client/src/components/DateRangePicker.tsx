@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { format, subDays, startOfWeek, endOfWeek } from "date-fns";
-import { CalendarIcon, ChevronDown } from "lucide-react";
+import { CalendarIcon, ChevronDown, Loader2 } from "lucide-react";
 import type { DateRange } from "react-day-picker";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -86,7 +86,10 @@ export function DateRangePicker({ onApply, loading }: Props) {
           disabled={loading}
           className="border-border text-foreground hover:bg-accent gap-2"
         >
-          <CalendarIcon className="h-4 w-4" />
+          {loading
+            ? <Loader2 className="h-4 w-4 animate-spin" />
+            : <CalendarIcon className="h-4 w-4" />
+          }
           {activeLabel}
           <ChevronDown className="h-3 w-3 opacity-50" />
         </Button>
