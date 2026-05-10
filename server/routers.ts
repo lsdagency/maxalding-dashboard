@@ -26,9 +26,12 @@ import {
   updateEmailLogStatus,
   getKpiTargetsForClient,
   upsertKpiTargets,
+  upsertPerformanceSummary,
+  getPerformanceSummary,
+  getPerformanceSummariesForClient,
 } from "./db";
 import { fetchMetaAdsMetrics, calculateWoWChange } from "./metaAds";
-import { generateWeeklyReportEmail, generatePerformanceSummary, sendEmail } from "./emailService";
+import { generateWeeklyReportEmail, sendEmail } from "./emailService";
 import { ENV } from "./_core/env";
 import { MetricsData, MetricsComparison } from "../shared/metrics";
 
@@ -434,7 +437,7 @@ export const appRouter = router({
       }),
 
     preview: adminProcedure
-      .input(z.object({ clientId: z.number(), summaryOverride: z.string().optional(), datePreset: z.string().optional() }))
+      .input(z.object({ clientId: z.number(), datePreset: z.string().optional() }))
       .mutation(async ({ input }) => {
         const client = await getClientById(input.clientId);
         if (!client) throw new TRPCError({ code: "NOT_FOUND", message: "Client not found" });
@@ -445,9 +448,11 @@ export const appRouter = router({
         const prevEnd = formatDate(prevEndDate);
         const prevStart = formatDate(new Date(prevEndDate.getTime() - periodDays * 86400000));
 
-        const [thisSnap, prevSnap] = await Promise.all([
+        const [thisSnap, prevSnap, summaryRow, kpiTargetsRow] = await Promise.all([
           getSnapshotByPeriod(input.clientId, thisStart, thisEnd),
           getSnapshotByPeriod(input.clientId, prevStart, prevEnd),
+          getPerformanceSummary(input.clientId, thisStart, thisEnd),
+          getKpiTargetsForClient(input.clientId),
         ]);
         if (!thisSnap) throw new TRPCError({ code: "BAD_REQUEST", message: `No data for ${thisStart} – ${thisEnd}. Fetch this period from the dashboard first.` });
 
@@ -459,24 +464,15 @@ export const appRouter = router({
         }
 
         const metricsComparison = { thisWeek, lastWeek, wowChange };
-        const periodStart = thisStart;
-        const periodEnd = thisEnd;
-
-        const useSummaryOverride = input.summaryOverride !== undefined;
-        const [aiSummary, kpiTargetsRow] = await Promise.all([
-          useSummaryOverride ? Promise.resolve("") : generatePerformanceSummary(client.name, metricsComparison, periodStart, periodEnd),
-          getKpiTargetsForClient(input.clientId),
-        ]);
-
-        const summary = useSummaryOverride ? (input.summaryOverride || null) : (aiSummary || null);
+        const summary = summaryRow?.summary || null;
         const kpiTargets = kpiTargetsRow ? kpiTargetsRowToNumbers(kpiTargetsRow) : null;
 
         const html = generateWeeklyReportEmail(
           client.name,
           metricsComparison,
           summary,
-          periodStart,
-          periodEnd,
+          thisStart,
+          thisEnd,
           kpiTargets
         );
 
@@ -487,7 +483,6 @@ export const appRouter = router({
       .input(z.object({
         clientId: z.number(),
         recipientEmail: z.string().email(),
-        summaryOverride: z.string().optional(),
         datePreset: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
@@ -500,9 +495,11 @@ export const appRouter = router({
         const prevEnd = formatDate(prevEndDate);
         const prevStart = formatDate(new Date(prevEndDate.getTime() - periodDays * 86400000));
 
-        const [thisSnap, prevSnap] = await Promise.all([
+        const [thisSnap, prevSnap, summaryRow, kpiTargetsRow] = await Promise.all([
           getSnapshotByPeriod(input.clientId, thisStart, thisEnd),
           getSnapshotByPeriod(input.clientId, prevStart, prevEnd),
+          getPerformanceSummary(input.clientId, thisStart, thisEnd),
+          getKpiTargetsForClient(input.clientId),
         ]);
         if (!thisSnap) throw new TRPCError({ code: "BAD_REQUEST", message: `No data for ${thisStart} – ${thisEnd}. Fetch this period from the dashboard first.` });
 
@@ -514,28 +511,19 @@ export const appRouter = router({
         }
 
         const metricsComparison = { thisWeek, lastWeek, wowChange };
-        const periodStart = thisStart;
-        const periodEnd = thisEnd;
-
-        const useSummaryOverride = input.summaryOverride !== undefined;
-        const [aiSummary, kpiTargetsRow] = await Promise.all([
-          useSummaryOverride ? Promise.resolve("") : generatePerformanceSummary(client.name, metricsComparison, periodStart, periodEnd),
-          getKpiTargetsForClient(input.clientId),
-        ]);
-
+        const summary = summaryRow?.summary || null;
         const kpiTargets = kpiTargetsRow ? kpiTargetsRowToNumbers(kpiTargetsRow) : null;
-        const summary = useSummaryOverride ? (input.summaryOverride || null) : (aiSummary || null);
 
         const html = generateWeeklyReportEmail(
           client.name,
           metricsComparison,
           summary,
-          periodStart,
-          periodEnd,
+          thisStart,
+          thisEnd,
           kpiTargets
         );
 
-        const subject = `${client.name} — Weekly Performance Report | ${periodStart} to ${periodEnd}`;
+        const subject = `${client.name} — Weekly Performance Report | ${thisStart} to ${thisEnd}`;
 
         const logId = await createEmailLog({
           clientId: input.clientId,
@@ -587,26 +575,25 @@ export const appRouter = router({
         }
 
         const metricsComparison = { thisWeek, lastWeek, wowChange };
-        const periodStart = thisStart;
-        const periodEnd = thisEnd;
 
-        const [aiSummary, kpiTargetsRow] = await Promise.all([
-          generatePerformanceSummary(client.name, metricsComparison, periodStart, periodEnd),
+        const [summaryRow, kpiTargetsRow] = await Promise.all([
+          getPerformanceSummary(config.clientId, thisStart, thisEnd),
           getKpiTargetsForClient(config.clientId),
         ]);
 
+        const summary = summaryRow?.summary || null;
         const kpiTargets = kpiTargetsRow ? kpiTargetsRowToNumbers(kpiTargetsRow) : null;
 
         const html = generateWeeklyReportEmail(
           client.name,
           metricsComparison,
-          aiSummary || null,
-          periodStart,
-          periodEnd,
+          summary,
+          thisStart,
+          thisEnd,
           kpiTargets
         );
 
-        const subject = `${client.name} — Weekly Performance Report | ${periodStart} to ${periodEnd}`;
+        const subject = `${client.name} — Weekly Performance Report | ${thisStart} to ${thisEnd}`;
 
         const logId = await createEmailLog({
           clientId: config.clientId,
@@ -669,6 +656,26 @@ export const appRouter = router({
           leadRateTarget: targets.leadRateTarget?.toString() || null,
         });
         return { success: true };
+      }),
+  }),
+  // Performance summaries
+  summary: router({
+    save: adminProcedure
+      .input(z.object({
+        clientId: z.number(),
+        periodStart: z.string(),
+        periodEnd: z.string(),
+        summary: z.string(),
+      }))
+      .mutation(async ({ input }) => {
+        await upsertPerformanceSummary(input.clientId, input.periodStart, input.periodEnd, input.summary);
+        return { success: true };
+      }),
+
+    getForClient: adminProcedure
+      .input(z.object({ clientId: z.number() }))
+      .query(async ({ input }) => {
+        return getPerformanceSummariesForClient(input.clientId, 20);
       }),
   }),
 });

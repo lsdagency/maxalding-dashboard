@@ -19,7 +19,6 @@ import {
 } from "@/components/ui/select";
 import { Plus, Edit, Trash2, Send, Eye, Mail } from "lucide-react";
 import { useState } from "react";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
 export default function EmailConfig() {
@@ -43,15 +42,6 @@ export default function EmailConfig() {
     recipientName: "",
     datePreset: "past_7",
   });
-
-  // Per-config summary mode: 'ai' uses Claude, 'manual' uses the typed text
-  const [summaryModes, setSummaryModes] = useState<Record<number, 'ai' | 'manual'>>({});
-  const [summaryTexts, setSummaryTexts] = useState<Record<number, string>>({});
-
-  function getSummaryOverride(configId: number): string | undefined {
-    if (summaryModes[configId] === 'manual') return summaryTexts[configId] ?? "";
-    return undefined; // undefined = use AI
-  }
 
   const createMutation = trpc.emailConfig.create.useMutation({
     onSuccess: () => {
@@ -140,14 +130,13 @@ export default function EmailConfig() {
   }
 
   function handlePreview(config: any) {
-    previewMutation.mutate({ clientId: config.clientId, summaryOverride: getSummaryOverride(config.id), datePreset: config.datePreset || "past_7" });
+    previewMutation.mutate({ clientId: config.clientId, datePreset: config.datePreset || "past_7" });
   }
 
   function handleSend(config: any) {
     sendMutation.mutate({
       clientId: config.clientId,
       recipientEmail: config.recipientEmail,
-      summaryOverride: getSummaryOverride(config.id),
       datePreset: config.datePreset || "past_7",
     });
   }
@@ -270,8 +259,8 @@ export default function EmailConfig() {
             <div>
               <p className="text-sm text-foreground font-medium">Automated Weekly Reports</p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Reports are automatically sent every Friday at 3:00 PM containing the prior 7 days of performance data.
-                You can also manually send reports at any time using the "Send All Now" button.
+                Reports include performance data for the configured period plus any summary you've written on the client page.
+                Use "Send All Now" to send all reports immediately, or the send icon on individual configs to send one at a time.
               </p>
             </div>
           </div>
@@ -303,32 +292,9 @@ export default function EmailConfig() {
                       <p className="text-xs text-muted-foreground">
                         Period: {DATE_PRESET_OPTIONS.find(o => o.value === (config.datePreset || "past_7"))?.label ?? "Past 7 days"}
                       </p>
-                      {/* Summary mode toggle */}
-                      <div className="flex items-center gap-2 pt-1">
-                        <span className="text-xs text-muted-foreground">Summary:</span>
-                        <div className="flex rounded-md overflow-hidden border border-border text-xs">
-                          <button
-                            className={`px-2.5 py-1 transition-colors ${(summaryModes[config.id] ?? 'ai') === 'ai' ? 'bg-white text-black font-medium' : 'text-muted-foreground hover:text-foreground'}`}
-                            onClick={() => setSummaryModes(p => ({ ...p, [config.id]: 'ai' }))}
-                          >
-                            AI
-                          </button>
-                          <button
-                            className={`px-2.5 py-1 transition-colors border-l border-border ${summaryModes[config.id] === 'manual' ? 'bg-white text-black font-medium' : 'text-muted-foreground hover:text-foreground'}`}
-                            onClick={() => setSummaryModes(p => ({ ...p, [config.id]: 'manual' }))}
-                          >
-                            Manual
-                          </button>
-                        </div>
-                      </div>
-                      {summaryModes[config.id] === 'manual' && (
-                        <Textarea
-                          value={summaryTexts[config.id] ?? ""}
-                          onChange={(e) => setSummaryTexts(p => ({ ...p, [config.id]: e.target.value }))}
-                          placeholder="Write a short performance summary to include in the email..."
-                          className="text-xs bg-background border-border text-foreground mt-1 resize-none h-20"
-                        />
-                      )}
+                      <p className="text-xs text-muted-foreground">
+                        Summary: written on client page
+                      </p>
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
                       <Button

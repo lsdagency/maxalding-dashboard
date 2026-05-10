@@ -7,6 +7,7 @@ import {
   emailConfigs, InsertEmailConfig,
   emailLogs, InsertEmailLog,
   kpiTargets, InsertKpiTarget,
+  performanceSummaries,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -276,4 +277,35 @@ export async function updateEmailLogStatus(id: number, status: "sent" | "failed"
     errorMessage: errorMessage || null,
     sentAt: status === "sent" ? new Date() : undefined,
   }).where(eq(emailLogs.id, id));
+}
+
+// ==================== PERFORMANCE SUMMARY QUERIES ====================
+
+export async function upsertPerformanceSummary(clientId: number, periodStart: string, periodEnd: string, summary: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(performanceSummaries)
+    .values({ clientId, periodStart, periodEnd, summary })
+    .onDuplicateKeyUpdate({ set: { summary } });
+}
+
+export async function getPerformanceSummary(clientId: number, periodStart: string, periodEnd: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(performanceSummaries)
+    .where(and(
+      eq(performanceSummaries.clientId, clientId),
+      eq(performanceSummaries.periodStart, periodStart),
+      eq(performanceSummaries.periodEnd, periodEnd),
+    )).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function getPerformanceSummariesForClient(clientId: number, limit = 10) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(performanceSummaries)
+    .where(eq(performanceSummaries.clientId, clientId))
+    .orderBy(desc(performanceSummaries.periodEnd))
+    .limit(limit);
 }

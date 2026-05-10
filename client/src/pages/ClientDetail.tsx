@@ -3,11 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, TrendingUp, TrendingDown, Minus, Target, Save } from "lucide-react";
+import { ArrowLeft, TrendingUp, TrendingDown, Minus, Target, Save, FileText } from "lucide-react";
 import { useLocation, useParams } from "wouter";
 import { toast } from "sonner";
 import { useState, useEffect, useMemo } from "react";
 import { DateRangePicker, type DateRangeValue } from "@/components/DateRangePicker";
+import { Textarea } from "@/components/ui/textarea";
 
 const METRIC_KEYS = [
   "cost", "reach", "thumbStopRate", "holdRate", "frequency",
@@ -119,6 +120,37 @@ export default function ClientDetail() {
 
   // Use live data from mutation result if available, else fall back to DB query
   const displayMetrics = liveMetrics ?? metrics;
+
+  // Summary state
+  const [summaryText, setSummaryText] = useState("");
+  const { data: summaries, refetch: refetchSummaries } = trpc.summary.getForClient.useQuery({ clientId });
+
+  const saveSummaryMutation = trpc.summary.save.useMutation({
+    onSuccess: () => {
+      toast.success("Summary saved");
+      refetchSummaries();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  // Pre-fill textarea when the viewed period changes or summaries load
+  useEffect(() => {
+    if (!displayMetrics) return;
+    const existing = summaries?.find(
+      s => s.periodStart === displayMetrics.periodStart && s.periodEnd === displayMetrics.periodEnd
+    );
+    setSummaryText(existing?.summary || "");
+  }, [displayMetrics?.periodStart, displayMetrics?.periodEnd, summaries]);
+
+  const handleSaveSummary = () => {
+    if (!displayMetrics) return;
+    saveSummaryMutation.mutate({
+      clientId,
+      periodStart: displayMetrics.periodStart,
+      periodEnd: displayMetrics.periodEnd,
+      summary: summaryText,
+    });
+  };
 
   const handleSaveKpi = () => {
     const payload: any = { clientId };
@@ -319,6 +351,62 @@ export default function ClientDetail() {
           </CardContent>
         </Card>
       )}
+
+      {/* Performance Summary */}
+      <Card className="bg-card border-border">
+        <CardHeader>
+          <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Performance Summary
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {displayMetrics ? (
+            <>
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  {dateLabel} ({displayMetrics.periodStart} – {displayMetrics.periodEnd})
+                </p>
+                <Textarea
+                  value={summaryText}
+                  onChange={(e) => setSummaryText(e.target.value)}
+                  placeholder="Write a performance summary for this period. This will be included in the email report when you send it."
+                  className="bg-background border-border text-foreground resize-none h-28 text-sm"
+                />
+                <div className="flex justify-end">
+                  <Button
+                    onClick={handleSaveSummary}
+                    disabled={saveSummaryMutation.isPending}
+                    className="bg-white text-black hover:bg-white/90"
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    Save Summary
+                  </Button>
+                </div>
+              </div>
+
+              {/* Previous summaries */}
+              {summaries && summaries.filter(s => !(s.periodStart === displayMetrics.periodStart && s.periodEnd === displayMetrics.periodEnd)).length > 0 && (
+                <div className="space-y-2 pt-2 border-t border-border">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Previous Summaries</p>
+                  <div className="space-y-3">
+                    {summaries
+                      .filter(s => !(s.periodStart === displayMetrics.periodStart && s.periodEnd === displayMetrics.periodEnd))
+                      .map(s => (
+                        <div key={s.id} className="rounded-md bg-background border border-border p-3 space-y-1">
+                          <p className="text-xs font-semibold text-muted-foreground">{s.periodStart} – {s.periodEnd}</p>
+                          <p className="text-sm text-foreground whitespace-pre-wrap">{s.summary}</p>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">Fetch metrics data first to add a summary for a period.</p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Client Info */}
       <Card className="bg-card border-border">

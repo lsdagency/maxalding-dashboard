@@ -121,3 +121,21 @@ export const kpiTargets = mysqlTable("kpi_targets", {
 
 export type KpiTarget = typeof kpiTargets.$inferSelect;
 export type InsertKpiTarget = typeof kpiTargets.$inferInsert;
+
+/**
+ * Performance summaries - manually written weekly notes per client per period
+ */
+export const performanceSummaries = mysqlTable("performance_summaries", {
+  id: int("id").autoincrement().primaryKey(),
+  clientId: int("clientId").notNull(),
+  periodStart: varchar("periodStart", { length: 10 }).notNull(),
+  periodEnd: varchar("periodEnd", { length: 10 }).notNull(),
+  summary: text("summary").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (t) => ({
+  clientPeriodUnique: uniqueIndex("perf_summary_unique").on(t.clientId, t.periodStart, t.periodEnd),
+}));
+
+export type PerformanceSummary = typeof performanceSummaries.$inferSelect;
+export type InsertPerformanceSummary = typeof performanceSummaries.$inferInsert;
