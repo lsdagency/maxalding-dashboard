@@ -103,6 +103,21 @@ Write 2-3 short sentences summarising how the week went. Rules:
 type KpiTargets = Partial<Record<keyof MetricsData, number | null>>;
 
 /**
+ * Convert TipTap HTML to email-safe inline-styled HTML.
+ * Replaces common tags with inline style equivalents so they render correctly
+ * in Outlook and other clients that strip <style> blocks.
+ */
+function inlineStyleSummary(html: string): string {
+  return html
+    .replace(/<ul>/g, '<ul style="padding-left:20px;margin:6px 0;">')
+    .replace(/<ol>/g, '<ol style="padding-left:20px;margin:6px 0;">')
+    .replace(/<li>/g, '<li style="margin:3px 0;">')
+    .replace(/<p>/g, '<p style="margin:4px 0;">')
+    .replace(/<strong>/g, '<strong style="font-weight:600;color:#fff;">')
+    .replace(/<em>/g, '<em style="font-style:italic;">');
+}
+
+/**
  * Generate the branded HTML email for a client's weekly performance report.
  * Includes This Week, Last Week, WoW%, and Target columns.
  */
@@ -146,7 +161,7 @@ export function generateWeeklyReportEmail(
 
   const summarySection = aiSummary
     ? `<div style="margin: 24px 0; padding: 20px; background: #111; border-left: 3px solid #fff;">
-        <p style="color: #ccc; font-size: 14px; margin: 0; line-height: 1.6;">${aiSummary}</p>
+        <div style="color: #ccc; font-size: 14px; line-height: 1.6;">${inlineStyleSummary(aiSummary)}</div>
       </div>`
     : "";
 

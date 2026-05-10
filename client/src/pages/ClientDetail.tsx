@@ -8,7 +8,7 @@ import { useLocation, useParams } from "wouter";
 import { toast } from "sonner";
 import { useState, useEffect, useMemo } from "react";
 import { DateRangePicker, type DateRangeValue } from "@/components/DateRangePicker";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/RichTextEditor";
 
 const METRIC_KEYS = [
   "cost", "reach", "thumbStopRate", "holdRate", "frequency",
@@ -367,11 +367,10 @@ export default function ClientDetail() {
                 <p className="text-xs text-muted-foreground">
                   {dateLabel} ({displayMetrics.periodStart} – {displayMetrics.periodEnd})
                 </p>
-                <Textarea
+                <RichTextEditor
                   value={summaryText}
-                  onChange={(e) => setSummaryText(e.target.value)}
+                  onChange={setSummaryText}
                   placeholder="Write a performance summary for this period. This will be included in the email report when you send it."
-                  className="bg-background border-border text-foreground resize-none h-28 text-sm"
                 />
                 <div className="flex justify-end">
                   <Button
