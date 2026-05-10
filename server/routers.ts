@@ -12,6 +12,7 @@ import {
   updateClient,
   deleteClient,
   getLatestMetricsForClient,
+  getSnapshotByPeriod,
   getMetricsForClient,
   createMetricsSnapshot,
   getEmailConfigsForClient,
@@ -383,14 +384,15 @@ export const appRouter = router({
         clientId: z.number(),
         recipientEmail: z.string().email(),
         recipientName: z.string().optional(),
-        personalizedMessage: z.string().optional(),
+        datePreset: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
         const id = await createEmailConfig({
           clientId: input.clientId,
           recipientEmail: input.recipientEmail,
           recipientName: input.recipientName || null,
-          personalizedMessage: input.personalizedMessage || null,
+          personalizedMessage: null,
+          datePreset: input.datePreset || "past_7",
         });
         return { id };
       }),
@@ -400,7 +402,7 @@ export const appRouter = router({
         id: z.number(),
         recipientEmail: z.string().email().optional(),
         recipientName: z.string().optional(),
-        personalizedMessage: z.string().optional(),
+        datePreset: z.string().optional(),
         isActive: z.number().optional(),
       }))
       .mutation(async ({ input }) => {
@@ -432,24 +434,33 @@ export const appRouter = router({
       }),
 
     preview: adminProcedure
-      .input(z.object({ clientId: z.number(), summaryOverride: z.string().optional() }))
+      .input(z.object({ clientId: z.number(), summaryOverride: z.string().optional(), datePreset: z.string().optional() }))
       .mutation(async ({ input }) => {
         const client = await getClientById(input.clientId);
         if (!client) throw new TRPCError({ code: "NOT_FOUND", message: "Client not found" });
 
-        const snapshots = await getLatestMetricsForClient(input.clientId);
-        if (snapshots.length === 0) throw new TRPCError({ code: "BAD_REQUEST", message: "No metrics data available for this client" });
+        const { thisStart, thisEnd } = datesFromPreset(input.datePreset || "past_7");
+        const periodDays = Math.round((new Date(thisEnd).getTime() - new Date(thisStart).getTime()) / 86400000);
+        const prevEndDate = new Date(new Date(thisStart).getTime() - 86400000);
+        const prevEnd = formatDate(prevEndDate);
+        const prevStart = formatDate(new Date(prevEndDate.getTime() - periodDays * 86400000));
 
-        const thisWeek = snapshotToMetrics(snapshots[0]);
-        const lastWeek = snapshots.length > 1 ? snapshotToMetrics(snapshots[1]) : createEmptyMetrics();
+        const [thisSnap, prevSnap] = await Promise.all([
+          getSnapshotByPeriod(input.clientId, thisStart, thisEnd),
+          getSnapshotByPeriod(input.clientId, prevStart, prevEnd),
+        ]);
+        if (!thisSnap) throw new TRPCError({ code: "BAD_REQUEST", message: `No data for ${thisStart} – ${thisEnd}. Fetch this period from the dashboard first.` });
+
+        const thisWeek = snapshotToMetrics(thisSnap);
+        const lastWeek = prevSnap ? snapshotToMetrics(prevSnap) : createEmptyMetrics();
         const wowChange: Record<keyof MetricsData, number | null> = {} as any;
         for (const key of Object.keys(thisWeek) as Array<keyof MetricsData>) {
           wowChange[key] = calculateWoWChange(thisWeek[key], lastWeek[key]);
         }
 
         const metricsComparison = { thisWeek, lastWeek, wowChange };
-        const periodStart = String(snapshots[0].periodStart);
-        const periodEnd = String(snapshots[0].periodEnd);
+        const periodStart = thisStart;
+        const periodEnd = thisEnd;
 
         const useSummaryOverride = input.summaryOverride !== undefined;
         const [aiSummary, kpiTargetsRow] = await Promise.all([
@@ -477,24 +488,34 @@ export const appRouter = router({
         clientId: z.number(),
         recipientEmail: z.string().email(),
         summaryOverride: z.string().optional(),
+        datePreset: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
         const client = await getClientById(input.clientId);
         if (!client) throw new TRPCError({ code: "NOT_FOUND", message: "Client not found" });
 
-        const snapshots = await getLatestMetricsForClient(input.clientId);
-        if (snapshots.length === 0) throw new TRPCError({ code: "BAD_REQUEST", message: "No metrics data available" });
+        const { thisStart, thisEnd } = datesFromPreset(input.datePreset || "past_7");
+        const periodDays = Math.round((new Date(thisEnd).getTime() - new Date(thisStart).getTime()) / 86400000);
+        const prevEndDate = new Date(new Date(thisStart).getTime() - 86400000);
+        const prevEnd = formatDate(prevEndDate);
+        const prevStart = formatDate(new Date(prevEndDate.getTime() - periodDays * 86400000));
 
-        const thisWeek = snapshotToMetrics(snapshots[0]);
-        const lastWeek = snapshots.length > 1 ? snapshotToMetrics(snapshots[1]) : createEmptyMetrics();
+        const [thisSnap, prevSnap] = await Promise.all([
+          getSnapshotByPeriod(input.clientId, thisStart, thisEnd),
+          getSnapshotByPeriod(input.clientId, prevStart, prevEnd),
+        ]);
+        if (!thisSnap) throw new TRPCError({ code: "BAD_REQUEST", message: `No data for ${thisStart} – ${thisEnd}. Fetch this period from the dashboard first.` });
+
+        const thisWeek = snapshotToMetrics(thisSnap);
+        const lastWeek = prevSnap ? snapshotToMetrics(prevSnap) : createEmptyMetrics();
         const wowChange: Record<keyof MetricsData, number | null> = {} as any;
         for (const key of Object.keys(thisWeek) as Array<keyof MetricsData>) {
           wowChange[key] = calculateWoWChange(thisWeek[key], lastWeek[key]);
         }
 
         const metricsComparison = { thisWeek, lastWeek, wowChange };
-        const periodStart = String(snapshots[0].periodStart);
-        const periodEnd = String(snapshots[0].periodEnd);
+        const periodStart = thisStart;
+        const periodEnd = thisEnd;
 
         const useSummaryOverride = input.summaryOverride !== undefined;
         const [aiSummary, kpiTargetsRow] = await Promise.all([
@@ -514,7 +535,7 @@ export const appRouter = router({
           kpiTargets
         );
 
-        const subject = `${client.name} — Weekly Performance Report | ${snapshots[0].periodStart} to ${snapshots[0].periodEnd}`;
+        const subject = `${client.name} — Weekly Performance Report | ${periodStart} to ${periodEnd}`;
 
         const logId = await createEmailLog({
           clientId: input.clientId,
@@ -543,22 +564,31 @@ export const appRouter = router({
         const client = await getClientById(config.clientId);
         if (!client) continue;
 
-        const snapshots = await getLatestMetricsForClient(config.clientId);
-        if (snapshots.length === 0) {
-          results.push({ clientId: config.clientId, clientName: client.name, success: false, error: "No metrics data" });
+        const { thisStart, thisEnd } = datesFromPreset(config.datePreset || "past_7");
+        const periodDays = Math.round((new Date(thisEnd).getTime() - new Date(thisStart).getTime()) / 86400000);
+        const prevEndDate = new Date(new Date(thisStart).getTime() - 86400000);
+        const prevEnd = formatDate(prevEndDate);
+        const prevStart = formatDate(new Date(prevEndDate.getTime() - periodDays * 86400000));
+
+        const [thisSnap, prevSnap] = await Promise.all([
+          getSnapshotByPeriod(config.clientId, thisStart, thisEnd),
+          getSnapshotByPeriod(config.clientId, prevStart, prevEnd),
+        ]);
+        if (!thisSnap) {
+          results.push({ clientId: config.clientId, clientName: client.name, success: false, error: `No data for ${thisStart} – ${thisEnd}` });
           continue;
         }
 
-        const thisWeek = snapshotToMetrics(snapshots[0]);
-        const lastWeek = snapshots.length > 1 ? snapshotToMetrics(snapshots[1]) : createEmptyMetrics();
+        const thisWeek = snapshotToMetrics(thisSnap);
+        const lastWeek = prevSnap ? snapshotToMetrics(prevSnap) : createEmptyMetrics();
         const wowChange: Record<keyof MetricsData, number | null> = {} as any;
         for (const key of Object.keys(thisWeek) as Array<keyof MetricsData>) {
           wowChange[key] = calculateWoWChange(thisWeek[key], lastWeek[key]);
         }
 
         const metricsComparison = { thisWeek, lastWeek, wowChange };
-        const periodStart = String(snapshots[0].periodStart);
-        const periodEnd = String(snapshots[0].periodEnd);
+        const periodStart = thisStart;
+        const periodEnd = thisEnd;
 
         const [aiSummary, kpiTargetsRow] = await Promise.all([
           generatePerformanceSummary(client.name, metricsComparison, periodStart, periodEnd),
@@ -576,7 +606,7 @@ export const appRouter = router({
           kpiTargets
         );
 
-        const subject = `${client.name} — Weekly Performance Report | ${snapshots[0].periodStart} to ${snapshots[0].periodEnd}`;
+        const subject = `${client.name} — Weekly Performance Report | ${periodStart} to ${periodEnd}`;
 
         const logId = await createEmailLog({
           clientId: config.clientId,
@@ -681,6 +711,37 @@ function createEmptyMetrics(): MetricsData {
 
 function formatDate(date: Date): string {
   return date.toISOString().split("T")[0];
+}
+
+export const DATE_PRESETS = ["past_7", "mon_sun", "past_14", "past_30"] as const;
+export type DatePreset = typeof DATE_PRESETS[number];
+
+export const DATE_PRESET_LABELS: Record<DatePreset, string> = {
+  past_7: "Past 7 days",
+  mon_sun: "Mon – Sun (last week)",
+  past_14: "Past 14 days",
+  past_30: "Past 30 days",
+};
+
+/** Returns { thisStart, thisEnd } for the selected period. */
+function datesFromPreset(preset: string): { thisStart: string; thisEnd: string } {
+  const now = new Date();
+  const yesterday = new Date(now.getTime() - 86400000);
+
+  if (preset === "mon_sun") {
+    // Last complete Mon-Sun week
+    const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon...
+    const daysToLastSunday = dayOfWeek === 0 ? 7 : dayOfWeek;
+    const lastSunday = new Date(now.getTime() - daysToLastSunday * 86400000);
+    const lastMonday = new Date(lastSunday.getTime() - 6 * 86400000);
+    return { thisStart: formatDate(lastMonday), thisEnd: formatDate(lastSunday) };
+  }
+
+  const days = preset === "past_14" ? 13 : preset === "past_30" ? 29 : 6;
+  return {
+    thisStart: formatDate(new Date(yesterday.getTime() - days * 86400000)),
+    thisEnd: formatDate(yesterday),
+  };
 }
 
 function kpiTargetsRowToNumbers(row: any): Partial<Record<keyof MetricsData, number | null>> {

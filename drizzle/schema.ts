@@ -72,6 +72,7 @@ export const emailConfigs = mysqlTable("email_configs", {
   recipientEmail: varchar("recipientEmail", { length: 320 }).notNull(),
   recipientName: varchar("recipientName", { length: 255 }),
   personalizedMessage: text("personalizedMessage"),
+  datePreset: varchar("datePreset", { length: 32 }).default("past_7").notNull(),
   isActive: int("isActive").default(1).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

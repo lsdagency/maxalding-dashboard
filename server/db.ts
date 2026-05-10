@@ -165,6 +165,19 @@ export async function getLatestMetricsForClient(clientId: number) {
     .limit(2);
 }
 
+export async function getSnapshotByPeriod(clientId: number, periodStart: string, periodEnd: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(metricsSnapshots)
+    .where(and(
+      eq(metricsSnapshots.clientId, clientId),
+      eq(metricsSnapshots.periodStart, periodStart),
+      eq(metricsSnapshots.periodEnd, periodEnd),
+    ))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
 export async function createMetricsSnapshot(data: Omit<InsertMetricsSnapshot, "id" | "createdAt">) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
