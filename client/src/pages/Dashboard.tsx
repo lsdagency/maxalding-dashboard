@@ -50,7 +50,7 @@ export default function Dashboard() {
   const { data: clientsData, isLoading, refetch } = trpc.metrics.getAllClientsMetrics.useQuery();
   // Live metrics override keyed by clientId — populated from mutation result, bypasses DB re-query
   const [liveMetricsMap, setLiveMetricsMap] = useState<Record<number, any>>({});
-  const [activeDateLabel, setActiveDateLabel] = useState("Past 7 days");
+  const [activeDateLabel, setActiveDateLabel] = useState("Mon – Sun (last week)");
 
   const fetchAllMutation = trpc.metrics.fetchAllFromMeta.useMutation({
     onSuccess: (results) => {

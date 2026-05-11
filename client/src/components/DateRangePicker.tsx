@@ -56,7 +56,7 @@ const PRESETS = [
 export function DateRangePicker({ onApply, loading }: Props) {
   const [open, setOpen] = useState(false);
   const [customRange, setCustomRange] = useState<DateRange | undefined>();
-  const [activeLabel, setActiveLabel] = useState("Past 7 days");
+  const [activeLabel, setActiveLabel] = useState("Mon – Sun (last week)");
 
   function handlePreset(preset: (typeof PRESETS)[number]) {
     const range = preset.getRange();

@@ -104,7 +104,7 @@ export default function ClientDetail() {
   });
 
   const [liveMetrics, setLiveMetrics] = useState<any>(null);
-  const [dateLabel, setDateLabel] = useState("Past 7 days");
+  const [dateLabel, setDateLabel] = useState("Mon – Sun (last week)");
 
   const fetchMutation = trpc.metrics.fetchFromMeta.useMutation({
     onSuccess: (data) => {
