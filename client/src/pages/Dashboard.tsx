@@ -15,9 +15,9 @@ const METRIC_LABELS: Record<string, string> = {
   cpm: "CPM",
   linkClicks: "Link Clicks",
   ctr: "CTR",
-  leads: "Leads",
-  costPerLead: "Cost Per Lead",
-  leadRate: "Lead Rate",
+  leads: "Results",
+  costPerLead: "Cost Per Result",
+  leadRate: "Result Rate",
 };
 
 const METRIC_FORMATS: Record<string, string> = {

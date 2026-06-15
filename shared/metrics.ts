@@ -37,9 +37,9 @@ export const METRIC_LABELS: Record<keyof MetricsData, string> = {
   cpm: "CPM",
   linkClicks: "Link Clicks",
   ctr: "CTR",
-  leads: "Leads",
-  costPerLead: "Cost Per Lead",
-  leadRate: "Lead Rate",
+  leads: "Results",
+  costPerLead: "Cost Per Result",
+  leadRate: "Result Rate",
 };
 
 export const METRIC_FORMATS: Record<keyof MetricsData, "currency" | "percentage" | "number" | "decimal"> = {
