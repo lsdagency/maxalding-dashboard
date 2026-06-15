@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, date, char, uniqueIndex } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -37,68 +37,6 @@ export type Client = typeof clients.$inferSelect;
 export type InsertClient = typeof clients.$inferInsert;
 
 /**
- * Metrics snapshots - stores weekly performance data per client
- */
-export const metricsSnapshots = mysqlTable("metrics_snapshots", {
-  id: int("id").autoincrement().primaryKey(),
-  clientId: int("clientId").notNull(),
-  periodStart: varchar("periodStart", { length: 10 }).notNull(),
-  periodEnd: varchar("periodEnd", { length: 10 }).notNull(),
-  cost: decimal("cost", { precision: 10, scale: 2 }),
-  reach: int("reach"),
-  thumbStopRate: decimal("thumbStopRate", { precision: 5, scale: 2 }),
-  holdRate: decimal("holdRate", { precision: 5, scale: 2 }),
-  frequency: decimal("frequency", { precision: 5, scale: 2 }),
-  cpm: decimal("cpm", { precision: 10, scale: 2 }),
-  linkClicks: int("linkClicks"),
-  ctr: decimal("ctr", { precision: 5, scale: 2 }),
-  leads: int("leads"),
-  costPerLead: decimal("costPerLead", { precision: 10, scale: 2 }),
-  leadRate: decimal("leadRate", { precision: 5, scale: 2 }),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-}, (t) => ({
-  clientPeriodUnique: uniqueIndex("client_period_unique").on(t.clientId, t.periodStart, t.periodEnd),
-}));
-
-export type MetricsSnapshot = typeof metricsSnapshots.$inferSelect;
-export type InsertMetricsSnapshot = typeof metricsSnapshots.$inferInsert;
-
-/**
- * Email configurations - per-client email settings
- */
-export const emailConfigs = mysqlTable("email_configs", {
-  id: int("id").autoincrement().primaryKey(),
-  clientId: int("clientId").notNull(),
-  recipientEmail: varchar("recipientEmail", { length: 320 }).notNull(),
-  recipientName: varchar("recipientName", { length: 255 }),
-  personalizedMessage: text("personalizedMessage"),
-  datePreset: varchar("datePreset", { length: 32 }).default("past_7").notNull(),
-  isActive: int("isActive").default(1).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
-
-export type EmailConfig = typeof emailConfigs.$inferSelect;
-export type InsertEmailConfig = typeof emailConfigs.$inferInsert;
-
-/**
- * Email logs - tracks sent emails
- */
-export const emailLogs = mysqlTable("email_logs", {
-  id: int("id").autoincrement().primaryKey(),
-  clientId: int("clientId").notNull(),
-  recipientEmail: varchar("recipientEmail", { length: 320 }).notNull(),
-  subject: varchar("subject", { length: 500 }),
-  status: mysqlEnum("status", ["sent", "failed", "pending"]).default("pending").notNull(),
-  errorMessage: text("errorMessage"),
-  sentAt: timestamp("sentAt"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
-
-export type EmailLog = typeof emailLogs.$inferSelect;
-export type InsertEmailLog = typeof emailLogs.$inferInsert;
-
-/**
  * KPI targets - per-client target values for each metric
  */
 export const kpiTargets = mysqlTable("kpi_targets", {
@@ -121,21 +59,3 @@ export const kpiTargets = mysqlTable("kpi_targets", {
 
 export type KpiTarget = typeof kpiTargets.$inferSelect;
 export type InsertKpiTarget = typeof kpiTargets.$inferInsert;
-
-/**
- * Performance summaries - manually written weekly notes per client per period
- */
-export const performanceSummaries = mysqlTable("performance_summaries", {
-  id: int("id").autoincrement().primaryKey(),
-  clientId: int("clientId").notNull(),
-  periodStart: varchar("periodStart", { length: 10 }).notNull(),
-  periodEnd: varchar("periodEnd", { length: 10 }).notNull(),
-  summary: text("summary").notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-}, (t) => ({
-  clientPeriodUnique: uniqueIndex("perf_summary_unique").on(t.clientId, t.periodStart, t.periodEnd),
-}));
-
-export type PerformanceSummary = typeof performanceSummaries.$inferSelect;
-export type InsertPerformanceSummary = typeof performanceSummaries.$inferInsert;

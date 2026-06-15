@@ -36,7 +36,6 @@ export interface ReportPdfProps {
   dateLabel: string;
   metrics: MetricsComparison;
   kpiValues: Record<string, number | null> | null;
-  summaryHtml: string;
 }
 
 // ─── Colours & constants ─────────────────────────────────────────────────────
@@ -174,9 +173,9 @@ const METRIC_LABELS: Record<string, string> = {
   cpm: "CPM",
   linkClicks: "Link Clicks",
   ctr: "CTR",
-  leads: "Leads",
-  costPerLead: "Cost Per Lead",
-  leadRate: "Lead Rate",
+  leads: "Results",
+  costPerLead: "Cost Per Result",
+  leadRate: "Result Rate",
 };
 
 const METRIC_FORMATS: Record<string, string> = {
@@ -223,68 +222,10 @@ function changeColor(value: number | null, metricKey: string): string {
   return isGood ? C.green : C.red;
 }
 
-/**
- * Convert HTML from TipTap to an array of { type: 'p'|'bullet'|'numbered', text: string } lines
- * so we can render them as react-pdf Text nodes.
- */
-function parseHtmlToLines(html: string): Array<{ type: "p" | "bullet" | "numbered"; text: string }> {
-  if (!html) return [];
-  const lines: Array<{ type: "p" | "bullet" | "numbered"; text: string }> = [];
-
-  // Strip inline tags, keep structure
-  const clean = (str: string) =>
-    str
-      .replace(/<strong>(.*?)<\/strong>/gi, "$1")
-      .replace(/<em>(.*?)<\/em>/gi, "$1")
-      .replace(/<[^>]+>/g, "")
-      .replace(/&amp;/g, "&")
-      .replace(/&lt;/g, "<")
-      .replace(/&gt;/g, ">")
-      .replace(/&nbsp;/g, " ")
-      .trim();
-
-  // Bullet list items
-  html.replace(/<ul[^>]*>([\s\S]*?)<\/ul>/gi, (_, content: string) => {
-    const re = /<li[^>]*>([\s\S]*?)<\/li>/gi;
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(content)) !== null) {
-      const text = clean(m[1]);
-      if (text) lines.push({ type: "bullet", text });
-    }
-    return "";
-  });
-
-  // Ordered list items
-  html.replace(/<ol[^>]*>([\s\S]*?)<\/ol>/gi, (_, content: string) => {
-    const re = /<li[^>]*>([\s\S]*?)<\/li>/gi;
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(content)) !== null) {
-      const text = clean(m[1]);
-      if (text) lines.push({ type: "numbered", text });
-    }
-    return "";
-  });
-
-  // Paragraphs (after stripping lists so we don't double-count)
-  const withoutLists = html
-    .replace(/<ul[^>]*>[\s\S]*?<\/ul>/gi, "")
-    .replace(/<ol[^>]*>[\s\S]*?<\/ol>/gi, "");
-  const pRe = /<p[^>]*>([\s\S]*?)<\/p>/gi;
-  let pm: RegExpExecArray | null;
-  while ((pm = pRe.exec(withoutLists)) !== null) {
-    const text = clean(pm[1]);
-    if (text) lines.push({ type: "p", text });
-  }
-
-  return lines;
-}
-
 // ─── PDF Document ─────────────────────────────────────────────────────────────
 
-function ReportDocument({ clientName, dateLabel, metrics, kpiValues, summaryHtml }: ReportPdfProps) {
+function ReportDocument({ clientName, dateLabel, metrics, kpiValues }: ReportPdfProps) {
   const { thisWeek, lastWeek, wowChange, periodStart, periodEnd } = metrics;
-  const summaryLines = parseHtmlToLines(summaryHtml);
-  let numberedIndex = 0;
 
   return (
     <Document>
@@ -351,23 +292,6 @@ function ReportDocument({ clientName, dateLabel, metrics, kpiValues, summaryHtml
             );
           })}
         </View>
-
-        {/* Performance Summary */}
-        {summaryLines.length > 0 && (
-          <View style={s.summaryCard}>
-            <Text style={s.summaryTitle}>Performance Summary</Text>
-            {summaryLines.map((line, i) => {
-              if (line.type === "bullet") {
-                return <Text key={i} style={s.summaryBullet}>• {line.text}</Text>;
-              }
-              if (line.type === "numbered") {
-                numberedIndex++;
-                return <Text key={i} style={s.summaryBullet}>{numberedIndex}. {line.text}</Text>;
-              }
-              return <Text key={i} style={s.summaryText}>{line.text}</Text>;
-            })}
-          </View>
-        )}
 
         {/* Footer */}
         <View style={s.footer} fixed>

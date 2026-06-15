@@ -1,5 +1,6 @@
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { TrendingUp, TrendingDown, Minus, Users } from "lucide-react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
@@ -203,7 +204,7 @@ export default function Dashboard() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">No metrics data available. Refresh to pull from Meta.</p>
+                  <p className="text-sm text-muted-foreground">No metrics available. Check the client has a Meta Ad Account ID set.</p>
                 )}
               </CardContent>
             </Card>

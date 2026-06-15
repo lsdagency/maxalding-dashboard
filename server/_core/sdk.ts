@@ -30,7 +30,18 @@ export async function authenticateRequest(req: Request) {
   if (dbUser) return dbUser;
 
   if (email.toLowerCase() === ENV.adminEmail.trim().toLowerCase()) {
-    return { id: 1, email, name: "Admin", role: "admin", openId: email, loginMethod: "password" };
+    const now = new Date();
+    return {
+      id: 1,
+      email,
+      name: "Admin",
+      role: "admin" as const,
+      openId: email,
+      loginMethod: "password",
+      createdAt: now,
+      updatedAt: now,
+      lastSignedIn: now,
+    };
   }
 
   throw new Error("User not found");

@@ -20,7 +20,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, Users, Mail, History, LogOut, PanelLeft } from "lucide-react";
+import { LayoutDashboard, Users, LogOut, PanelLeft } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
@@ -30,8 +30,6 @@ import { Input } from "./ui/input";
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
   { icon: Users, label: "Clients", path: "/clients" },
-  { icon: Mail, label: "Email Config", path: "/email" },
-  { icon: History, label: "Email Logs", path: "/email/logs" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";

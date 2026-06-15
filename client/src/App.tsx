@@ -8,8 +8,6 @@ import DashboardLayout from "./components/DashboardLayout";
 import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
 import ClientDetail from "./pages/ClientDetail";
-import EmailConfig from "./pages/EmailConfig";
-import EmailLogs from "./pages/EmailLogs";
 
 function Router() {
   return (
@@ -18,8 +16,6 @@ function Router() {
         <Route path="/" component={Dashboard} />
         <Route path="/clients" component={Clients} />
         <Route path="/clients/:id" component={ClientDetail} />
-        <Route path="/email" component={EmailConfig} />
-        <Route path="/email/logs" component={EmailLogs} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
       </Switch>

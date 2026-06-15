@@ -1,13 +1,9 @@
-import { eq, and, desc, gte, lte } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   InsertUser, users,
   clients, InsertClient,
-  metricsSnapshots, InsertMetricsSnapshot,
-  emailConfigs, InsertEmailConfig,
-  emailLogs, InsertEmailLog,
   kpiTargets, InsertKpiTarget,
-  performanceSummaries,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -144,53 +140,6 @@ export async function deleteClient(id: number) {
   await db.update(clients).set({ isActive: 0 }).where(eq(clients.id, id));
 }
 
-// ==================== METRICS QUERIES ====================
-
-export async function getMetricsForClient(clientId: number, periodStart?: string, periodEnd?: string) {
-  const db = await getDb();
-  if (!db) return [];
-
-  let query = db.select().from(metricsSnapshots).where(eq(metricsSnapshots.clientId, clientId));
-
-  return db.select().from(metricsSnapshots)
-    .where(eq(metricsSnapshots.clientId, clientId))
-    .orderBy(desc(metricsSnapshots.periodEnd));
-}
-
-export async function getLatestMetricsForClient(clientId: number) {
-  const db = await getDb();
-  if (!db) return [];
-  return db.select().from(metricsSnapshots)
-    .where(eq(metricsSnapshots.clientId, clientId))
-    .orderBy(desc(metricsSnapshots.periodEnd))
-    .limit(2);
-}
-
-export async function getSnapshotByPeriod(clientId: number, periodStart: string, periodEnd: string) {
-  const db = await getDb();
-  if (!db) return null;
-  const rows = await db.select().from(metricsSnapshots)
-    .where(and(
-      eq(metricsSnapshots.clientId, clientId),
-      eq(metricsSnapshots.periodStart, periodStart),
-      eq(metricsSnapshots.periodEnd, periodEnd),
-    ))
-    .limit(1);
-  return rows[0] ?? null;
-}
-
-export async function createMetricsSnapshot(data: Omit<InsertMetricsSnapshot, "id" | "createdAt">) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  const { clientId, periodStart, periodEnd, ...metrics } = data;
-  await db.insert(metricsSnapshots).values(data).onDuplicateKeyUpdate({ set: metrics });
-  const existing = await db.select({ id: metricsSnapshots.id })
-    .from(metricsSnapshots)
-    .where(and(eq(metricsSnapshots.clientId, clientId), eq(metricsSnapshots.periodStart, periodStart), eq(metricsSnapshots.periodEnd, periodEnd)))
-    .limit(1);
-  return existing[0]?.id ?? 0;
-}
-
 // ==================== KPI TARGETS QUERIES ====================
 
 export async function getKpiTargetsForClient(clientId: number) {
@@ -203,109 +152,11 @@ export async function getKpiTargetsForClient(clientId: number) {
 export async function upsertKpiTargets(clientId: number, data: Partial<Omit<InsertKpiTarget, "id" | "clientId" | "createdAt" | "updatedAt">>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   const existing = await getKpiTargetsForClient(clientId);
   if (existing) {
     await db.update(kpiTargets).set(data).where(eq(kpiTargets.clientId, clientId));
   } else {
     await db.insert(kpiTargets).values({ clientId, ...data });
   }
-}
-
-// ==================== EMAIL CONFIG QUERIES ====================
-
-export async function getEmailConfigsForClient(clientId: number) {
-  const db = await getDb();
-  if (!db) return [];
-  return db.select().from(emailConfigs).where(eq(emailConfigs.clientId, clientId));
-}
-
-export async function getAllEmailConfigs() {
-  const db = await getDb();
-  if (!db) return [];
-  return db.select().from(emailConfigs).where(eq(emailConfigs.isActive, 1));
-}
-
-export async function createEmailConfig(data: Omit<InsertEmailConfig, "id" | "createdAt" | "updatedAt">) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  const result = await db.insert(emailConfigs).values(data);
-  return result[0].insertId;
-}
-
-export async function updateEmailConfig(id: number, data: Partial<InsertEmailConfig>) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  await db.update(emailConfigs).set(data).where(eq(emailConfigs.id, id));
-}
-
-export async function deleteEmailConfig(id: number) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  await db.update(emailConfigs).set({ isActive: 0 }).where(eq(emailConfigs.id, id));
-}
-
-// ==================== EMAIL LOG QUERIES ====================
-
-export async function getEmailLogs(limit = 50) {
-  const db = await getDb();
-  if (!db) return [];
-  return db.select().from(emailLogs).orderBy(desc(emailLogs.createdAt)).limit(limit);
-}
-
-export async function getEmailLogsForClient(clientId: number, limit = 20) {
-  const db = await getDb();
-  if (!db) return [];
-  return db.select().from(emailLogs)
-    .where(eq(emailLogs.clientId, clientId))
-    .orderBy(desc(emailLogs.createdAt))
-    .limit(limit);
-}
-
-export async function createEmailLog(data: Omit<InsertEmailLog, "id" | "createdAt">) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  const result = await db.insert(emailLogs).values(data);
-  return result[0].insertId;
-}
-
-export async function updateEmailLogStatus(id: number, status: "sent" | "failed", errorMessage?: string) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  await db.update(emailLogs).set({
-    status,
-    errorMessage: errorMessage || null,
-    sentAt: status === "sent" ? new Date() : undefined,
-  }).where(eq(emailLogs.id, id));
-}
-
-// ==================== PERFORMANCE SUMMARY QUERIES ====================
-
-export async function upsertPerformanceSummary(clientId: number, periodStart: string, periodEnd: string, summary: string) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  await db.insert(performanceSummaries)
-    .values({ clientId, periodStart, periodEnd, summary })
-    .onDuplicateKeyUpdate({ set: { summary } });
-}
-
-export async function getPerformanceSummary(clientId: number, periodStart: string, periodEnd: string) {
-  const db = await getDb();
-  if (!db) return null;
-  const rows = await db.select().from(performanceSummaries)
-    .where(and(
-      eq(performanceSummaries.clientId, clientId),
-      eq(performanceSummaries.periodStart, periodStart),
-      eq(performanceSummaries.periodEnd, periodEnd),
-    )).limit(1);
-  return rows[0] ?? null;
-}
-
-export async function getPerformanceSummariesForClient(clientId: number, limit = 10) {
-  const db = await getDb();
-  if (!db) return [];
-  return db.select().from(performanceSummaries)
-    .where(eq(performanceSummaries.clientId, clientId))
-    .orderBy(desc(performanceSummaries.periodEnd))
-    .limit(limit);
 }

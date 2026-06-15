@@ -3,6 +3,50 @@ import { MetricsData } from "../shared/metrics";
 
 const META_GRAPH_API_BASE = "https://graph.facebook.com/v21.0";
 
+/**
+ * Conversion action types that count as a "Result", in priority order.
+ * For a single client account (usually one objective), we take the highest-priority
+ * type present so the figure matches Meta Ads Manager's "Results" column regardless
+ * of whether the client runs lead forms, applications, purchases, messaging, etc.
+ *
+ * NOTE: validate this ordering against live accounts when the Meta token is connected
+ * — custom conversions surface as `offsite_conversion.custom.<id>` and may need adding.
+ */
+const RESULT_ACTION_PRIORITY = [
+  "offsite_conversion.fb_pixel_lead",
+  "onsite_conversion.lead_grouped",
+  "lead",
+  "submit_application",
+  "offsite_conversion.fb_pixel_complete_registration",
+  "complete_registration",
+  "offsite_conversion.fb_pixel_purchase",
+  "onsite_web_purchase",
+  "onsite_conversion.purchase",
+  "purchase",
+  "onsite_conversion.messaging_conversation_started_7d",
+  "schedule",
+  "contact",
+  "subscribe",
+  "start_trial",
+];
+
+/**
+ * Choose the most relevant conversion result from an insights `actions` array.
+ * Returns the count and which action_type it came from (so cost-per-result can match).
+ */
+function pickResult(
+  actions?: Array<{ action_type: string; value: string }>,
+): { results: number; actionType: string | null } {
+  if (!actions || actions.length === 0) return { results: 0, actionType: null };
+  for (const type of RESULT_ACTION_PRIORITY) {
+    const found = actions.find(a => a.action_type === type);
+    if (found && parseFloat(found.value) > 0) {
+      return { results: parseInt(found.value, 10), actionType: type };
+    }
+  }
+  return { results: 0, actionType: null };
+}
+
 interface MetaInsightsResponse {
   data: Array<{
     spend?: string;
@@ -95,18 +139,24 @@ function parseMetaInsights(data: MetaInsightsResponse["data"][0]): MetricsData {
     ? parseFloat(data.inline_link_click_ctr)
     : 0;
 
-  // Leads (from actions)
-  const leads = data.actions
-    ? parseInt(data.actions.find(a => a.action_type === "lead")?.value || "0", 10)
+  // Results: the account's conversion outcome, whatever the objective is
+  // (lead forms, submit applications, purchases, etc.) — not just lead-form "lead".
+  // We pick the highest-priority conversion action present in the response so the
+  // dashboard shows the same "Results" figure Meta Ads Manager does, per client.
+  const { results, actionType: resultActionType } = pickResult(data.actions);
+
+  // Cost per result: use Meta's own cost_per_action_type for the chosen action if
+  // available, otherwise derive it from spend.
+  const costPerResultFromApi = resultActionType && data.cost_per_action_type
+    ? parseFloat(data.cost_per_action_type.find(a => a.action_type === resultActionType)?.value || "0")
     : 0;
+  const costPerLead = costPerResultFromApi > 0
+    ? costPerResultFromApi
+    : results > 0 ? spend / results : 0;
 
-  // Cost per lead
-  const costPerLead = data.cost_per_action_type
-    ? parseFloat(data.cost_per_action_type.find(a => a.action_type === "lead")?.value || "0")
-    : leads > 0 ? spend / leads : 0;
-
-  // Lead Rate = Leads / Link Clicks * 100
-  const leadRate = linkClicks > 0 ? (leads / linkClicks) * 100 : 0;
+  // Result Rate = Results / Link Clicks * 100
+  const leadRate = linkClicks > 0 ? (results / linkClicks) * 100 : 0;
+  const leads = results;
 
   // Thumb Stop Rate = 3-second video plays / Impressions * 100
   // Meta reports 3-second video views in the actions array as "video_view"
