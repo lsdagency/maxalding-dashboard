@@ -32,6 +32,7 @@ const RESULT_ACTION_PRIORITY = [
   "contact",
   "subscribe",
   "start_trial",
+  "offsite_conversion.fb_pixel_custom",
 ];
 
 interface MetaInsightsResponse {
@@ -59,17 +60,40 @@ function round2(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
+/**
+ * Determine the account's "Results" (matching Meta Ads Manager) and cost-per-result.
+ *
+ * 1) Meta's unified result metric surfaces in cost_per_action_type as
+ *    `<event>_add_meta_leads` (e.g. submit applications, leads). Because Meta
+ *    computes cost-per = spend / results, we recover the exact count as
+ *    spend / cost — this is what Ads Manager's "Results" column shows.
+ * 2) Otherwise fall back to the highest-priority conversion count in `actions`.
+ */
 function pickResult(
-  actions?: Array<{ action_type: string; value: string }>,
-): { results: number; actionType: string | null } {
-  if (!actions || actions.length === 0) return { results: 0, actionType: null };
+  actions: Array<{ action_type: string; value: string }> | undefined,
+  costPerActions: Array<{ action_type: string; value: string }> | undefined,
+  spend: number,
+): { results: number; costPerResult: number } {
+  // 1) Unified "Add Meta leads" result (submit applications, leads, etc.)
+  const aml = costPerActions?.find(
+    (a) => a.action_type.endsWith("_add_meta_leads") && parseFloat(a.value) > 0,
+  );
+  if (aml) {
+    const cpr = parseFloat(aml.value);
+    return { results: cpr > 0 ? Math.round(spend / cpr) : 0, costPerResult: cpr };
+  }
+
+  // 2) Highest-priority conversion action present in `actions`.
   for (const type of RESULT_ACTION_PRIORITY) {
-    const found = actions.find((a) => a.action_type === type);
-    if (found && parseFloat(found.value) > 0) {
-      return { results: parseInt(found.value, 10), actionType: type };
+    const found = actions?.find((a) => a.action_type === type && parseFloat(a.value) > 0);
+    if (found) {
+      const results = parseInt(found.value, 10);
+      const cprEntry = costPerActions?.find((a) => a.action_type === type);
+      const costPerResult = cprEntry ? parseFloat(cprEntry.value) : results > 0 ? spend / results : 0;
+      return { results, costPerResult };
     }
   }
-  return { results: 0, actionType: null };
+  return { results: 0, costPerResult: 0 };
 }
 
 function createEmptyMetrics(): MetricsData {
@@ -90,11 +114,8 @@ function parseMetaInsights(data: MetaInsightsResponse["data"][0]): MetricsData {
   const ctr = data.inline_link_click_ctr ? parseFloat(data.inline_link_click_ctr) : 0;
 
   // Results: the account's conversion outcome, whatever the objective is.
-  const { results, actionType: resultActionType } = pickResult(data.actions);
-  const costPerResultFromApi = resultActionType && data.cost_per_action_type
-    ? parseFloat(data.cost_per_action_type.find((a) => a.action_type === resultActionType)?.value || "0")
-    : 0;
-  const costPerLead = costPerResultFromApi > 0 ? costPerResultFromApi : results > 0 ? spend / results : 0;
+  const { results, costPerResult } = pickResult(data.actions, data.cost_per_action_type, spend);
+  const costPerLead = costPerResult > 0 ? costPerResult : results > 0 ? spend / results : 0;
   const leadRate = linkClicks > 0 ? (results / linkClicks) * 100 : 0;
 
   // Thumb Stop Rate = 3-second video plays / impressions
@@ -175,25 +196,6 @@ export async function fetchAdAccounts(accessToken: string): Promise<MetaAdAccoun
     throw new Error(`Failed to list Meta ad accounts: ${error?.response?.data?.error?.message || error.message}`);
   }
   return accounts.sort((a, b) => a.name.localeCompare(b.name));
-}
-
-/** Diagnostic: return the raw actions + cost_per_action_type Meta reports for an account/range. */
-export async function fetchRawInsights(
-  adAccountId: string,
-  accessToken: string,
-  dateStart: string,
-  dateEnd: string,
-): Promise<{ spend?: string; actions?: any[]; cost_per_action_type?: any[] } | null> {
-  const url = `${META_GRAPH_API_BASE}/act_${adAccountId}/insights`;
-  const response = await axios.get(url, {
-    params: {
-      access_token: accessToken,
-      fields: "spend,actions,cost_per_action_type",
-      time_range: JSON.stringify({ since: dateStart, until: dateEnd }),
-      level: "account",
-    },
-  });
-  return (response.data as any).data?.[0] ?? null;
 }
 
 export function calculateWoWChange(thisWeek: number | null, lastWeek: number | null): number | null {
