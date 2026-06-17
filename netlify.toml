@@ -1,6 +1,7 @@
 # Netlify config for the Maxalding dashboard (Next.js + Netlify DB)
 [build]
   command = "pnpm build"
+  publish = ".next"
 
 [build.environment]
   NODE_VERSION = "20"
