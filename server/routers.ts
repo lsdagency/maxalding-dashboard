@@ -14,7 +14,7 @@ import {
   getKpiTargetsForClient,
   upsertKpiTargets,
 } from "./db";
-import { fetchMetaAdsMetrics, calculateWoWChange } from "./metaAds";
+import { fetchMetaAdsMetrics, calculateWoWChange, fetchAdAccounts } from "./metaAds";
 import { ENV } from "./_core/env";
 import { MetricsData, MetricsComparison } from "../shared/metrics";
 
@@ -178,6 +178,15 @@ export const appRouter = router({
 
         return results;
       }),
+  }),
+
+  // Meta — account discovery
+  meta: router({
+    listAdAccounts: adminProcedure.query(async () => {
+      const accessToken = ENV.metaAccessToken;
+      if (!accessToken) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Meta access token not configured" });
+      return fetchAdAccounts(accessToken);
+    }),
   }),
 
   // KPI Targets

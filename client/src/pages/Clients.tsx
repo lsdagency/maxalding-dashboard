@@ -10,6 +10,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Plus, Edit, Trash2, ExternalLink } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
@@ -20,6 +27,10 @@ export default function Clients() {
   const { data: clients, isLoading, refetch } = trpc.clients.list.useQuery();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<any>(null);
+
+  // Pull the ad accounts from the connected Business Manager (only when the dialog is open)
+  const { data: adAccounts, isLoading: accountsLoading, error: accountsError } =
+    trpc.meta.listAdAccounts.useQuery(undefined, { enabled: dialogOpen });
 
   const [formData, setFormData] = useState({
     name: "",
@@ -122,13 +133,31 @@ export default function Clients() {
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-foreground">Meta Ad Account ID</Label>
-                <Input
-                  value={formData.metaAdAccountId}
-                  onChange={(e) => setFormData(p => ({ ...p, metaAdAccountId: e.target.value }))}
-                  placeholder="e.g., 123456789"
-                  className="bg-background border-border text-foreground"
-                />
+                <Label className="text-foreground">Meta Ad Account</Label>
+                {accountsError ? (
+                  <>
+                    <Input
+                      value={formData.metaAdAccountId}
+                      onChange={(e) => setFormData(p => ({ ...p, metaAdAccountId: e.target.value }))}
+                      placeholder="e.g., 123456789"
+                      className="bg-background border-border text-foreground"
+                    />
+                    <p className="text-xs text-destructive">Couldn't load ad accounts — enter the ID manually. ({accountsError.message})</p>
+                  </>
+                ) : (
+                  <Select value={formData.metaAdAccountId} onValueChange={(v) => setFormData(p => ({ ...p, metaAdAccountId: v }))}>
+                    <SelectTrigger className="bg-background border-border text-foreground">
+                      <SelectValue placeholder={accountsLoading ? "Loading ad accounts…" : "Select an ad account"} />
+                    </SelectTrigger>
+                    <SelectContent className="bg-card border-border max-h-72">
+                      {adAccounts?.map(acc => (
+                        <SelectItem key={acc.id} value={acc.id}>
+                          {acc.name} ({acc.id})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
               <div className="flex justify-end gap-3 pt-2">
                 <Button type="button" variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }} className="border-border">

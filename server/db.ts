@@ -10,6 +10,7 @@ import {
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
+let _schemaReady: Promise<void> | null = null;
 
 // Resolution order (matches the PHYT dashboard):
 //   explicit DATABASE_URL  →  NETLIFY_DATABASE_URL env var  →  Netlify DB's
@@ -27,18 +28,74 @@ function connectionString(): string | undefined {
   return undefined;
 }
 
+/**
+ * Create the schema if it doesn't exist yet. Idempotent (IF NOT EXISTS), runs
+ * once per cold start, and never throws — so a fresh database self-initialises
+ * on first use without any manual migration step.
+ */
+async function ensureSchema(sql: any): Promise<void> {
+  try {
+    await sql`DO $$ BEGIN CREATE TYPE "role" AS ENUM ('user','admin'); EXCEPTION WHEN duplicate_object THEN null; END $$;`;
+    await sql`CREATE TABLE IF NOT EXISTS "clients" (
+      "id" serial PRIMARY KEY NOT NULL,
+      "name" varchar(255) NOT NULL,
+      "metaAdAccountId" varchar(128),
+      "contactEmail" varchar(320),
+      "contactName" varchar(255),
+      "notes" text,
+      "isActive" integer DEFAULT 1 NOT NULL,
+      "createdAt" timestamp DEFAULT now() NOT NULL,
+      "updatedAt" timestamp DEFAULT now() NOT NULL
+    );`;
+    await sql`CREATE TABLE IF NOT EXISTS "kpi_targets" (
+      "id" serial PRIMARY KEY NOT NULL,
+      "clientId" integer NOT NULL,
+      "costTarget" numeric(10, 2),
+      "reachTarget" integer,
+      "thumbStopRateTarget" numeric(5, 2),
+      "holdRateTarget" numeric(5, 2),
+      "frequencyTarget" numeric(5, 2),
+      "cpmTarget" numeric(10, 2),
+      "linkClicksTarget" integer,
+      "ctrTarget" numeric(5, 2),
+      "leadsTarget" integer,
+      "costPerLeadTarget" numeric(10, 2),
+      "leadRateTarget" numeric(5, 2),
+      "createdAt" timestamp DEFAULT now() NOT NULL,
+      "updatedAt" timestamp DEFAULT now() NOT NULL
+    );`;
+    await sql`CREATE TABLE IF NOT EXISTS "users" (
+      "id" serial PRIMARY KEY NOT NULL,
+      "openId" varchar(64) NOT NULL,
+      "name" text,
+      "email" varchar(320),
+      "loginMethod" varchar(64),
+      "role" "role" DEFAULT 'user' NOT NULL,
+      "createdAt" timestamp DEFAULT now() NOT NULL,
+      "updatedAt" timestamp DEFAULT now() NOT NULL,
+      "lastSignedIn" timestamp DEFAULT now() NOT NULL,
+      CONSTRAINT "users_openId_unique" UNIQUE("openId")
+    );`;
+  } catch (error) {
+    console.warn("[Database] ensureSchema skipped/failed (tables may already exist):", error);
+  }
+}
+
 export async function getDb() {
   if (!_db) {
     const url = connectionString();
     if (url) {
       try {
-        _db = drizzle(neon(url));
+        const sql = neon(url);
+        _db = drizzle(sql);
+        _schemaReady = ensureSchema(sql);
       } catch (error) {
         console.warn("[Database] Failed to connect:", error);
         _db = null;
       }
     }
   }
+  if (_schemaReady) await _schemaReady;
   return _db;
 }
 

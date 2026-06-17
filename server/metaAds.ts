@@ -122,6 +122,44 @@ export async function fetchMetaAdsMetrics(
   }
 }
 
+export interface MetaAdAccount {
+  id: string;   // numeric account id (no act_ prefix) — matches what we store
+  name: string;
+  status: number | null;
+}
+
+/**
+ * List all ad accounts the access token can see (across the connected Business
+ * Manager). Used to populate the client form dropdown so account IDs don't have
+ * to be typed by hand. Follows paging up to a sane cap.
+ */
+export async function fetchAdAccounts(accessToken: string): Promise<MetaAdAccount[]> {
+  const accounts: MetaAdAccount[] = [];
+  let url: string | null =
+    `${META_GRAPH_API_BASE}/me/adaccounts?fields=account_id,name,account_status&limit=200&access_token=${encodeURIComponent(accessToken)}`;
+
+  try {
+    let pages = 0;
+    while (url && pages < 10) {
+      const response: { data: { data?: any[]; paging?: { next?: string } } } = await axios.get(url);
+      for (const acc of response.data.data ?? []) {
+        accounts.push({
+          id: acc.account_id,
+          name: acc.name || `Account ${acc.account_id}`,
+          status: acc.account_status ?? null,
+        });
+      }
+      url = response.data.paging?.next ?? null;
+      pages++;
+    }
+  } catch (error: any) {
+    console.error("[MetaAds] Failed to list ad accounts:", error?.response?.data || error.message);
+    throw new Error(`Failed to list Meta ad accounts: ${error?.response?.data?.error?.message || error.message}`);
+  }
+
+  return accounts.sort((a, b) => a.name.localeCompare(b.name));
+}
+
 function parseMetaInsights(data: MetaInsightsResponse["data"][0]): MetricsData {
   const spend = parseFloat(data.spend || "0");
   const reach = parseInt(data.reach || "0", 10);
