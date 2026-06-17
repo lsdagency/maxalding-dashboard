@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Plus, Edit, Trash2, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
+import { slugify } from "@/lib/utils";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -170,7 +171,7 @@ export default function ClientsClient() {
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base font-semibold text-foreground">{client.name}</CardTitle>
                   <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => router.push(`/clients/${client.id}`)}>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => router.push(`/clients/${slugify(client.name)}`)}>
                       <ExternalLink className="h-4 w-4" />
                     </Button>
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => handleEdit(client)}>

@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Minus, Users } from "lucide-react";
 import { DateRangePicker, type DateRangeValue } from "@/components/DateRangePicker";
 import { formatValue, METRIC_LABELS, METRIC_FORMATS, type MetricsData } from "@/lib/metrics";
+import { slugify } from "@/lib/utils";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -92,7 +93,7 @@ export default function DashboardClient() {
             <Card
               key={client.id}
               className="cursor-pointer bg-card border-border transition-colors hover:border-foreground/20"
-              onClick={() => router.push(`/clients/${client.id}`)}
+              onClick={() => router.push(`/clients/${slugify(client.name)}`)}
             >
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg font-semibold text-foreground">{client.name}</CardTitle>
