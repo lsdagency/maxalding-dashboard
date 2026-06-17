@@ -353,21 +353,9 @@ export default function ClientDetail() {
           <CardTitle className="text-base font-semibold text-foreground">Client Details</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Meta Ad Account ID</p>
-              <p className="text-foreground font-mono mt-0.5">{client.metaAdAccountId || "Not configured"}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Contact</p>
-              <p className="text-foreground mt-0.5">{client.contactName || "—"} {client.contactEmail ? `(${client.contactEmail})` : ""}</p>
-            </div>
-            {client.notes && (
-              <div className="md:col-span-2">
-                <p className="text-xs text-muted-foreground uppercase tracking-wider">Notes</p>
-                <p className="text-foreground mt-0.5">{client.notes}</p>
-              </div>
-            )}
+          <div className="text-sm">
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">Meta Ad Account ID</p>
+            <p className="text-foreground font-mono mt-0.5">{client.metaAdAccountId || "Not configured"}</p>
           </div>
         </CardContent>
       </Card>

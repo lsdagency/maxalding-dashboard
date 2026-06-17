@@ -24,9 +24,6 @@ export default function Clients() {
   const [formData, setFormData] = useState({
     name: "",
     metaAdAccountId: "",
-    contactEmail: "",
-    contactName: "",
-    notes: "",
   });
 
   const createMutation = trpc.clients.create.useMutation({
@@ -58,7 +55,7 @@ export default function Clients() {
   });
 
   function resetForm() {
-    setFormData({ name: "", metaAdAccountId: "", contactEmail: "", contactName: "", notes: "" });
+    setFormData({ name: "", metaAdAccountId: "" });
     setEditingClient(null);
   }
 
@@ -67,9 +64,6 @@ export default function Clients() {
     setFormData({
       name: client.name || "",
       metaAdAccountId: client.metaAdAccountId || "",
-      contactEmail: client.contactEmail || "",
-      contactName: client.contactName || "",
-      notes: client.notes || "",
     });
     setDialogOpen(true);
   }
@@ -136,36 +130,6 @@ export default function Clients() {
                   className="bg-background border-border text-foreground"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-foreground">Contact Name</Label>
-                  <Input
-                    value={formData.contactName}
-                    onChange={(e) => setFormData(p => ({ ...p, contactName: e.target.value }))}
-                    placeholder="Contact person"
-                    className="bg-background border-border text-foreground"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-foreground">Contact Email</Label>
-                  <Input
-                    value={formData.contactEmail}
-                    onChange={(e) => setFormData(p => ({ ...p, contactEmail: e.target.value }))}
-                    placeholder="email@example.com"
-                    type="email"
-                    className="bg-background border-border text-foreground"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-foreground">Notes</Label>
-                <textarea
-                  value={formData.notes}
-                  onChange={(e) => setFormData(p => ({ ...p, notes: e.target.value }))}
-                  placeholder="Additional notes about this client..."
-                  className="w-full h-20 px-3 py-2 rounded-md bg-background border border-border text-foreground text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
               <div className="flex justify-end gap-3 pt-2">
                 <Button type="button" variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }} className="border-border">
                   Cancel
@@ -226,26 +190,13 @@ export default function Clients() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-1 text-sm">
-                  {client.metaAdAccountId && (
+                  {client.metaAdAccountId ? (
                     <p className="text-muted-foreground">
                       <span className="text-xs uppercase tracking-wider">Ad Account:</span>{" "}
                       <span className="text-foreground font-mono text-xs">{client.metaAdAccountId}</span>
                     </p>
-                  )}
-                  {client.contactName && (
-                    <p className="text-muted-foreground">
-                      <span className="text-xs uppercase tracking-wider">Contact:</span>{" "}
-                      <span className="text-foreground">{client.contactName}</span>
-                    </p>
-                  )}
-                  {client.contactEmail && (
-                    <p className="text-muted-foreground">
-                      <span className="text-xs uppercase tracking-wider">Email:</span>{" "}
-                      <span className="text-foreground">{client.contactEmail}</span>
-                    </p>
-                  )}
-                  {!client.metaAdAccountId && !client.contactName && (
-                    <p className="text-muted-foreground text-xs italic">No details configured</p>
+                  ) : (
+                    <p className="text-muted-foreground text-xs italic">No Meta Ad Account ID set</p>
                   )}
                 </div>
               </CardContent>
