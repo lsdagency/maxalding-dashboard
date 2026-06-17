@@ -177,6 +177,25 @@ export async function fetchAdAccounts(accessToken: string): Promise<MetaAdAccoun
   return accounts.sort((a, b) => a.name.localeCompare(b.name));
 }
 
+/** Diagnostic: return the raw actions + cost_per_action_type Meta reports for an account/range. */
+export async function fetchRawInsights(
+  adAccountId: string,
+  accessToken: string,
+  dateStart: string,
+  dateEnd: string,
+): Promise<{ spend?: string; actions?: any[]; cost_per_action_type?: any[] } | null> {
+  const url = `${META_GRAPH_API_BASE}/act_${adAccountId}/insights`;
+  const response = await axios.get(url, {
+    params: {
+      access_token: accessToken,
+      fields: "spend,actions,cost_per_action_type",
+      time_range: JSON.stringify({ since: dateStart, until: dateEnd }),
+      level: "account",
+    },
+  });
+  return (response.data as any).data?.[0] ?? null;
+}
+
 export function calculateWoWChange(thisWeek: number | null, lastWeek: number | null): number | null {
   if (thisWeek === null || lastWeek === null || lastWeek === 0) return null;
   return round2(((thisWeek - lastWeek) / lastWeek) * 100);
