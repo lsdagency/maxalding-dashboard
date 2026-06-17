@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
+import { drizzle } from "drizzle-orm/neon-http";
+import { neon } from "@neondatabase/serverless";
 import {
   InsertUser, users,
   clients, InsertClient,
@@ -9,13 +10,21 @@ import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
+// Netlify DB injects NETLIFY_DATABASE_URL; fall back to DATABASE_URL for local/dev.
+function connectionString(): string | undefined {
+  return process.env.NETLIFY_DATABASE_URL || process.env.DATABASE_URL || undefined;
+}
+
 export async function getDb() {
-  if (!_db && process.env.DATABASE_URL) {
-    try {
-      _db = drizzle(process.env.DATABASE_URL);
-    } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
-      _db = null;
+  if (!_db) {
+    const url = connectionString();
+    if (url) {
+      try {
+        _db = drizzle(neon(url));
+      } catch (error) {
+        console.warn("[Database] Failed to connect:", error);
+        _db = null;
+      }
     }
   }
   return _db;
@@ -73,7 +82,8 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       updateSet.lastSignedIn = new Date();
     }
 
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
+    await db.insert(users).values(values).onConflictDoUpdate({
+      target: users.openId,
       set: updateSet,
     });
   } catch (error) {
@@ -124,8 +134,8 @@ export async function getClientById(id: number) {
 export async function createClient(data: Omit<InsertClient, "id" | "createdAt" | "updatedAt">) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const result = await db.insert(clients).values(data);
-  return result[0].insertId;
+  const result = await db.insert(clients).values(data).returning({ id: clients.id });
+  return result[0].id;
 }
 
 export async function updateClient(id: number, data: Partial<InsertClient>) {

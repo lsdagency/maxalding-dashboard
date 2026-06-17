@@ -1,26 +1,12 @@
 {
   "version": "7",
-  "dialect": "mysql",
+  "dialect": "postgresql",
   "entries": [
     {
       "idx": 0,
-      "version": "5",
-      "when": 1778217989086,
-      "tag": "0000_rich_master_chief",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "5",
-      "when": 1778218124029,
-      "tag": "0001_illegal_wendell_rand",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "5",
-      "when": 1778225240396,
-      "tag": "0002_salty_purple_man",
+      "version": "7",
+      "when": 1781535427977,
+      "tag": "0000_amused_nitro",
       "breakpoints": true
     }
   ]
