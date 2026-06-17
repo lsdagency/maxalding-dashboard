@@ -1,28 +1,6 @@
-# Netlify config for the Maxalding dashboard
-# Frontend: Vite SPA built to dist/public
-# Backend: Express + tRPC wrapped as a single function (netlify/functions/server.ts)
-
+# Netlify config for the Maxalding dashboard (Next.js + Netlify DB)
 [build]
-  command = "pnpm run build:client"
-  publish = "dist/public"
-  functions = "netlify/functions"
+  command = "pnpm build"
 
-[build.environment]
-  NODE_VERSION = "20"
-
-[functions]
-  node_bundler = "esbuild"
-
-# API requests go to the Express function. Netlify preserves the original
-# request path, so Express still matches /api/trpc and /api/auth/* routes.
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/server"
-  status = 200
-  force = true
-
-# SPA fallback — everything else serves the built index.html
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

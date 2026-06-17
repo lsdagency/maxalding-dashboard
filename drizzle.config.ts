@@ -1,14 +1,10 @@
-import { defineConfig } from "drizzle-kit";
+import type { Config } from "drizzle-kit";
 
-// Netlify DB injects NETLIFY_DATABASE_URL; fall back to DATABASE_URL for local/dev.
-const connectionString =
-  process.env.NETLIFY_DATABASE_URL || process.env.DATABASE_URL || "";
-
-export default defineConfig({
-  schema: "./drizzle/schema.ts",
+export default {
+  schema: "./lib/db/schema.ts",
   out: "./drizzle",
   dialect: "postgresql",
   dbCredentials: {
-    url: connectionString,
+    url: (process.env.DATABASE_URL || process.env.NETLIFY_DATABASE_URL)!,
   },
-});
+} satisfies Config;
