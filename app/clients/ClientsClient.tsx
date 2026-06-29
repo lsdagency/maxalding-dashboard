@@ -13,7 +13,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Plus, Edit, Trash2, ExternalLink } from "lucide-react";
+import { Plus, Edit, Trash2, ExternalLink, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { slugify } from "@/lib/utils";
 
@@ -37,10 +37,16 @@ export default function ClientsClient() {
   const [form, setForm] = useState({ name: "", metaAdAccountId: "" });
   const [saving, setSaving] = useState(false);
 
-  const { data: adAccounts, error: adAccountsError } = useSWR<AdAccount[]>(
-    dialogOpen ? "/api/meta/ad-accounts" : null,
-    fetcher,
-  );
+  const {
+    data: adAccounts,
+    error: adAccountsError,
+    isValidating: accountsValidating,
+    mutate: refreshAccounts,
+  } = useSWR<AdAccount[]>(dialogOpen ? "/api/meta/ad-accounts" : null, fetcher, {
+    revalidateOnMount: true,
+    revalidateIfStale: true,
+    dedupingInterval: 0,
+  });
   const accountsLoading = dialogOpen && !adAccounts && !adAccountsError;
   // The endpoint returns an array on success, or {error} on failure.
   const adAccountList = Array.isArray(adAccounts) ? adAccounts : [];
@@ -117,7 +123,19 @@ export default function ClientsClient() {
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-foreground">Meta Ad Account</Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-foreground">Meta Ad Account</Label>
+                  <button
+                    type="button"
+                    onClick={() => refreshAccounts()}
+                    disabled={accountsValidating}
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+                    title="Refresh ad accounts from Meta"
+                  >
+                    <RefreshCw className={`h-3 w-3 ${accountsValidating ? "animate-spin" : ""}`} />
+                    Refresh
+                  </button>
+                </div>
                 {accountsFailed ? (
                   <>
                     <Input
